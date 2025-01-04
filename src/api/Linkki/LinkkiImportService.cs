@@ -33,7 +33,7 @@ public class LinkkiImportService : BackgroundService
         { "9121", "12" },
         { "9211", "21" },
         { "9031", "3" },
-        { "9143", "143" },
+        { "9143", "14M" },
         { "9201", "20" },
         { "9151", "15" },
         { "9161", "16" },
@@ -42,7 +42,8 @@ public class LinkkiImportService : BackgroundService
         { "6140", "14" },
         { "9451", "45" },
         { "12", "141" },
-        { "6141", "14" }
+        { "6141", "14" },
+        { "9431", "143"}
     };
 
     public LinkkiImportService(ILogger<LinkkiImportService> logger, IOptions<LinkkiImportOptions> linkkiOptions,
