@@ -155,7 +155,7 @@ function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="flex flex-col bg-gray-100">
       <header className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 flex items-center justify-center gap-3 shadow-sm rounded-xl">
         <img
           src="/linkki-logo.png"
@@ -167,9 +167,11 @@ function App() {
         </h1>
       </header>
 
-      <main className="flex-1 p-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-          <div className="md:col-span-2 flex flex-col bg-white rounded-xl shadow-sm overflow-hidden">
+      <main className="p-8">
+        <div className="flex gap-8">
+          {/* Chat container */}
+          
+          <div className="w-[600px] flex flex-col bg-white rounded-xl shadow-sm">
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
@@ -193,7 +195,7 @@ function App() {
               ))}
             </div>
 
-            <div className="p-6 bg-gray-50 border-t">
+            <div className="p-6 bg-gray-50 border-t ">
               <div className="flex gap-4">
                 <input
                   type="text"
@@ -213,9 +215,11 @@ function App() {
             </div>
           </div>
 
-          <div className="h-full bg-gray-50 rounded-lg shadow-sm p-6">
-            <div id="map" className="h-full w-full rounded-lg" />
+          {/* Map container */}
+          <div className="flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
+            <div id="map" className="w-full min-h-[600px] rounded-lg" />
           </div>
+
         </div>
       </main>
     </div>
