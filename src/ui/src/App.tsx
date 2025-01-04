@@ -21,6 +21,7 @@ function App() {
   const [userId] = useState(() => Math.random().toString(36).substring(2, 15))
   const [mapPoints, setMapPoints] = useState<LinkkiPoint[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
@@ -125,6 +126,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const handleSend = async () => {
     if (message.trim() && socket) {
       const userMessage: Message = {
@@ -170,9 +175,9 @@ function App() {
       <main className="p-8">
         <div className="flex gap-8">
           {/* Chat container */}
-          
-          <div className="w-[600px] flex flex-col bg-white rounded-xl shadow-sm">
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          <div className="w-[600px] h-[800px] flex flex-col bg-white rounded-xl shadow-sm">
+            {/* Scrollable messages area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 h-full">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                   {!msg.isUser && (
@@ -193,9 +198,11 @@ function App() {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-6 bg-gray-50 border-t ">
+            {/* Fixed input area */}
+            <div className="p-6 bg-gray-50 border-t">
               <div className="flex gap-4">
                 <input
                   type="text"
@@ -216,10 +223,9 @@ function App() {
           </div>
 
           {/* Map container */}
-          <div className="flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
-            <div id="map" className="w-full min-h-[600px] rounded-lg" />
+          <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
+            <div id="map" className="w-full h-full rounded-lg" />
           </div>
-
         </div>
       </main>
     </div>
