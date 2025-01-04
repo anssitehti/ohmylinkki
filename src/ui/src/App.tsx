@@ -35,27 +35,29 @@ function App() {
 
         ws.onmessage = (event) => {
           const data: LinkkiPoint[] = JSON.parse(event.data);
+
           setMapPoints(data);
 
-          if (mapRef.current) {
-            const geojson: GeoJSON.FeatureCollection = {
-              type: 'FeatureCollection',
-              features: data.map(point => ({
-                type: 'Feature',
-                geometry: {
-                  type: 'Point',
-                  coordinates: point.location.coordinates
-                },
-                properties: {
-                  description: point.line,
-                  icon: 'linkki'
-                }
-              }))
-            };
-
-            (mapRef.current.getSource('points') as maplibregl.GeoJSONSource)?.setData(geojson);
-          }
-
+          requestAnimationFrame(() => {
+            if (mapRef.current) {
+              const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
+              if (source) {
+                source.setData({
+                  type: 'FeatureCollection',
+                  features: data.map(point => ({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: point.location.coordinates
+                    },
+                    properties: {
+                      description: point.line
+                    }
+                  }))
+                });
+              }
+            }
+          });
         }
 
         setSocket(ws)
@@ -116,8 +118,6 @@ function App() {
           'text-justify': 'center',
         }
       });
-
-
 
     });
 
