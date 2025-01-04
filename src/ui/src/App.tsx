@@ -78,7 +78,7 @@ function App() {
       container: 'map',
       style: 'https://api.maptiler.com/maps/basic/style.json?key=Zmuer6TZwYpzssYfvTcK',
       center: [25.7473, 62.2426],
-      zoom: 12
+      zoom: 11
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
