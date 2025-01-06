@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Api.Linkki;
@@ -22,8 +23,13 @@ public class Vehicle
 
 public class GeoJson
 {
-    [JsonProperty("type")] public required string Type { get; set; }
-    [JsonProperty("coordinates")] public required float[] Coordinates { get; set; }
+    [JsonProperty("type")] 
+    [JsonPropertyName("type")] 
+    public required string Type { get; set; }
+    
+    [JsonProperty("coordinates")] 
+    [JsonPropertyName("coordinates")] 
+    public required float[] Coordinates { get; set; }
 }
 
 public class Line

@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css'
 
-// Add interface for message structure
 interface Message {
   text: string;
   timestamp: Date;
   isUser: boolean;
+}
+
+interface LinkkiPoint {
+  id: string,
+  line: string;
+  location: { type: string, coordinates: [number, number] };
 }
 
 function App() {
@@ -13,31 +20,46 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [socket, setSocket] = useState<WebSocket | null>(null)
   const [userId] = useState(() => Math.random().toString(36).substring(2, 15))
+  const [mapPoints, setMapPoints] = useState<LinkkiPoint[]>([]);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
       try {
-        // Negotiate connection
-        console.log(`userId=${userId}`)
+
         const response = await fetch(`api/negotiate?id=${userId}`)
 
         const data = await response.json()
 
-        // Create WebSocket connection
         const ws = new WebSocket(data.url)
 
-        ws.onopen = () => {
-          console.log('Connected to WebSocket')
-        }
-
         ws.onmessage = (event) => {
-          const message = event.data;
-          //TODO update mapp
-          console.log('Received message:', message)
-        }
+          const data: LinkkiPoint[] = JSON.parse(event.data);
 
-        ws.onclose = () => {
-          console.log('Disconnected from WebSocket')
+          setMapPoints(data);
+
+          requestAnimationFrame(() => {
+            if (mapRef.current) {
+              const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
+              if (source) {
+                source.setData({
+                  type: 'FeatureCollection',
+                  features: data.map(point => ({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: point.location.coordinates
+                    },
+                    properties: {
+                      id: point.id,
+                      description: point.line
+                    }
+                  }))
+                });
+              }
+            }
+          });
         }
 
         setSocket(ws)
@@ -48,13 +70,67 @@ function App() {
 
     initializeConnection()
 
-    // Cleanup on unmount
     return () => {
       if (socket) {
         socket.close()
       }
     }
   }, [userId])
+
+  useEffect(() => {
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://api.maptiler.com/maps/basic/style.json?key=Zmuer6TZwYpzssYfvTcK',
+      center: [25.7473, 62.2426],
+      zoom: 11
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    mapRef.current = map;
+
+    map.on('load', async () => {
+
+      map.addSource('points', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: []
+        }
+      });
+
+      map.addLayer({
+        id: 'points',
+        type: 'circle',
+        source: 'points',
+        paint: {
+          'circle-radius': 15,
+          'circle-color': '#129d2d',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      map.addLayer({
+        id: 'point-labels',
+        type: 'symbol',
+        source: 'points',
+        layout: {
+          'text-field': ['get', 'description'],
+          'text-justify': 'center',
+        }
+      });
+
+    });
+
+    return () => {
+      map.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async () => {
     if (message.trim() && socket) {
@@ -65,10 +141,10 @@ function App() {
       };
       setMessages(prev => [...prev, userMessage]);
       setMessage('');
-      
+
       const response = await fetch(`api/chat?message=${message}&userId=${userId}`);
       const json = await response.json();
-      
+
       const aiMessage: Message = {
         text: json.message,
         timestamp: new Date(),
@@ -86,22 +162,24 @@ function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="flex flex-col bg-gray-100">
       <header className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 flex items-center justify-center gap-3 shadow-sm rounded-xl">
-        <img 
-          src="/linkki-logo.png" 
-          alt="Linkki Logo" 
+        <img
+          src="/linkki-logo.png"
+          alt="Linkki Logo"
           className="h-10 w-auto"
         />
         <h1 className="text-2xl font-bold tracking-tight">
           OhMyLinkki <span className="text-sm font-normal opacity-75">AI Assistant</span>
         </h1>
       </header>
-      
-      <main className="flex-1 p-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-          <div className="md:col-span-2 flex flex-col bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+
+      <main className="p-8">
+        <div className="flex gap-8">
+          {/* Chat container */}
+          <div className="w-[600px] h-[800px] flex flex-col bg-white rounded-xl shadow-sm">
+            {/* Scrollable messages area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 h-full">
               {messages.map((msg, index) => (
                 <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                   {!msg.isUser && (
@@ -110,11 +188,10 @@ function App() {
                     </div>
                   )}
                   <div
-                    className={`p-4 rounded-2xl max-w-[70%] shadow-sm ${
-                      msg.isUser 
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100'
-                    }`}
+                    className={`p-4 rounded-2xl max-w-[70%] shadow-sm ${msg.isUser
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100'
+                      }`}
                   >
                     <div>{msg.text}</div>
                     <div className={`text-xs mt-1 ${msg.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
@@ -123,8 +200,10 @@ function App() {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
+            {/* Fixed input area */}
             <div className="p-6 bg-gray-50 border-t">
               <div className="flex gap-4">
                 <input
@@ -145,10 +224,9 @@ function App() {
             </div>
           </div>
 
-          <div className="h-full bg-gray-50 rounded-lg shadow-sm p-6">
-            <div className="h-full w-full">
-              Map will go here
-            </div>
+          {/* Map container */}
+          <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
+            <div id="map" className="w-full h-full rounded-lg" />
           </div>
         </div>
       </main>
