@@ -1,6 +1,5 @@
 using Api;
 using Api.AI;
-using Api.AiPlugins;
 using Api.Linkki;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -17,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 var azureCredential = new DefaultAzureCredential();
 builder.Services.AddSingleton(azureCredential);
 
-builder.Services.AddOptionsWithValidateOnStart<LinkkiImportOptions>()
+builder.Services.AddOptionsWithValidateOnStart<LinkkiOptions>()
     .Bind(builder.Configuration.GetSection("LinkkiImport")).ValidateDataAnnotations();
 
 builder.Services.AddOptionsWithValidateOnStart<OpenAiOptions>()
@@ -38,7 +37,7 @@ builder.Services.AddSingleton<IChatHistoryProvider>(new MemoryChatHistoryProvide
 
 builder.Services.AddTransient((sp) =>
 {
-    KernelPluginCollection pluginCollection = new();
+    KernelPluginCollection pluginCollection = [];
     pluginCollection.AddFromObject(sp.GetRequiredService<LinkkiPlugin>());
     return new Kernel(sp, pluginCollection);
 });
@@ -46,10 +45,14 @@ builder.Services.AddTransient((sp) =>
 builder.Services.AddSingleton<CosmosClient>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
-    return new CosmosClient(options.ConnectionString);
+    return new CosmosClient(options.ConnectionString, new CosmosClientOptions()
+    {
+        EnableContentResponseOnWrite = false,
+        ConsistencyLevel = ConsistencyLevel.Session
+    });
 });
 
-builder.Services.AddHostedService<LinkkiImportService>();
+builder.Services.AddHostedService<LinkkiLocationImporter>();
 
 builder.Services.AddWebPubSub(o => o.ServiceEndpoint = new WebPubSubServiceEndpoint(new Uri(builder.Configuration["WebPubSubEndpoint"]!), azureCredential))
     .AddWebPubSubServiceClient<LinkkiHub>();

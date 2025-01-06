@@ -10,6 +10,7 @@ interface Message {
 }
 
 interface LinkkiPoint {
+  id: string,
   line: string;
   location: { type: string, coordinates: [number, number] };
 }
@@ -51,6 +52,7 @@ function App() {
                       coordinates: point.location.coordinates
                     },
                     properties: {
+                      id: point.id,
                       description: point.line
                     }
                   }))
