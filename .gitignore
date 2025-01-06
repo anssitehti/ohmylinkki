@@ -73,3 +73,6 @@ msbuild.wrn
 
 .env
 appsettings.Development.json
+
+# Bicep
+*.bicepparam

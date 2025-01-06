@@ -23,6 +23,11 @@ public class LinkkiPlugin
     [return: Description("The current location of the linkki.")]
     public async Task<dynamic?> GetLocationAsync(string line, string destination)
     {
+        if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(destination))
+        {
+            return null;
+        }
+        
         var query = _container.GetItemLinqQueryable<LinkkiLocation>()
             .Where(l => l.Line.Name.ToLower() == line.ToLower() && l.Vehicle.Headsign.ToLower() == destination.ToLower())
             .OrderByDescending(l => l.Timestamp).Take(1);

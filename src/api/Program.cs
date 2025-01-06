@@ -28,7 +28,7 @@ builder.Services.AddOptionsWithValidateOnStart<CosmosDbOptions>()
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
-    return new AzureOpenAIChatCompletionService(options.DeploymentName, options.Endpoint, options.ApiKey);
+    return new AzureOpenAIChatCompletionService(options.DeploymentName, options.Endpoint, azureCredential);
 });
 
 builder.Services.AddSingleton<LinkkiPlugin>();
@@ -45,7 +45,7 @@ builder.Services.AddTransient((sp) =>
 builder.Services.AddSingleton<CosmosClient>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
-    return new CosmosClient(options.ConnectionString, new CosmosClientOptions()
+    return new CosmosClient(options.Endpoint, azureCredential, new CosmosClientOptions()
     {
         EnableContentResponseOnWrite = false,
         ConsistencyLevel = ConsistencyLevel.Session
@@ -54,7 +54,9 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
 
 builder.Services.AddHostedService<LinkkiLocationImporter>();
 
-builder.Services.AddWebPubSub(o => o.ServiceEndpoint = new WebPubSubServiceEndpoint(new Uri(builder.Configuration["WebPubSubEndpoint"]!), azureCredential))
+builder.Services.AddWebPubSub(o =>
+        o.ServiceEndpoint =
+            new WebPubSubServiceEndpoint(new Uri(builder.Configuration["WebPubSub:Endpoint"]!), azureCredential))
     .AddWebPubSubServiceClient<LinkkiHub>();
 
 builder.Services.AddProblemDetails();
@@ -69,7 +71,7 @@ app.MapHealthChecks("/healthz/startup");
 app.MapHealthChecks("/healthz/readiness");
 app.MapHealthChecks("/healthz/liveness");
 
-app.MapGet("api/chat", async (string message,string userId, Kernel kernel, IChatHistoryProvider chatHistoryProvider) =>
+app.MapGet("api/chat", async (string message, string userId, Kernel kernel, IChatHistoryProvider chatHistoryProvider) =>
 {
     var chatHistory = await chatHistoryProvider.GetHistoryAsync(userId);
     chatHistory.AddUserMessage(message);
@@ -79,12 +81,12 @@ app.MapGet("api/chat", async (string message,string userId, Kernel kernel, IChat
         executionSettings: new AzureOpenAIPromptExecutionSettings()
         {
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-        }, 
+        },
         kernel: kernel);
     chatHistory.Add(result);
     return new
     {
-        message =result.Content
+        message = result.Content
     };
 });
 
@@ -96,6 +98,7 @@ app.MapGet("api/negotiate", (WebPubSubServiceClient<LinkkiHub> service, HttpCont
         context.Response.StatusCode = 400;
         return null;
     }
+
     return new
     {
         url = service.GetClientAccessUri(userId: id).AbsoluteUri

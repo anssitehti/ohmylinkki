@@ -40,14 +40,14 @@ Create `src/api/appsettings.Development.json` with the following structure:
     "ImportInterval": 3000
   },
   "OpenAi": {
-    "Endpoint": "your_openai_endpoint",
-    "ApiKey": "your_openai_key",
-    "DeploymentName": "your_deployment_name"
+    "Endpoint": "your_openai_endpoint"
   },
   "CosmosDb": {
     "ConnectionString": "your_cosmos_connection_string"
   },
-  "WebPubSubEndpoint": "your_pubsub_endpoint"
+  "WebPubSub":{
+    "Endpoint": "your_pubsub_endpoint"
+  }
 }
 ```
 
@@ -70,6 +70,52 @@ The application will be available at:
 - Frontend: <http://localhost:5173>
 - Backend: <http://localhost:5074>
 
+## Deploy to the Azure
+
+Follow these steps to deploy the solution to Azure.
+
+### Build images
+
+Use following commands to create and push images to docker hub.
+
+Set username:
+
+```sh
+export DOCKER_HUB_USERNAME=<your_username>
+```
+
+Tag and push images to Docker Hub.
+
+```sh
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-api:latest -f src/api/Dockerfile .
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-api:latest
+
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-ui:latest -f src/ui/Dockerfile src/ui/
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:latest
+
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:latest -f nginx-proxy/Dockerfile nginx-proxy
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:latest
+
+```
+
+### Deploy Azure Infra
+
+Follow these steps to deploy solutions to Azure:
+
+1. Open terminal
+2. Log in using your Microsoft Entra ID credentials: `az login --use-device-code`
+3. Go to the directory: `cd infra/bicep/stacks/ohmylinkki`
+4. First verify the changes using what-if command:
+
+    ```shell
+    az deployment sub what-if --subscription {subscription} --location {location} --template-file main.bicep --parameters {env}.bicepparam
+    ```
+
+5. Deploy the stack:
+
+    ```shell
+    az stack sub create --name ohmylinkki --subscription {subscription} --location {location} --deny-settings-mode none --action-on-unmanage deleteAll --template-file main.bicep --parameters {env}.bicepparam
+    ```
 
 ## License
 
