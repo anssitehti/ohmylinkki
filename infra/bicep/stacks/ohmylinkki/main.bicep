@@ -161,8 +161,8 @@ module nginxProxy '../../modules/container-app/app.bicep' = {
           memory: '0.5Gi'
         }
         env: [
-          { name: 'API_URL', value: 'https://${api.outputs.url}' }
-          { name: 'UI_URL', value: 'https://${ui.outputs.url}' }
+          { name: 'API_URL', value: 'https://${api.outputs.fqdn}' }
+          { name: 'UI_URL', value: 'https://${ui.outputs.fqdn}' }
         ]
       }
     ]

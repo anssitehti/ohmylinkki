@@ -1,3 +1,5 @@
+# Define rate limit zone - 1 request per second per IP
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=1r/s;
 
 server {
     access_log off;
@@ -5,6 +7,12 @@ server {
     server_name _;
     # Forward /api requests to the backend API
     location /api/ {
+        # Apply rate limiting - burst of 1, no delay
+        limit_req zone=api_limit burst=1 nodelay;
+        
+        # Return 429 Too Many Requests on rate limit
+        limit_req_status 429;
+
         proxy_http_version 1.1;
         proxy_ssl_server_name on;
         proxy_pass ${API_URL};

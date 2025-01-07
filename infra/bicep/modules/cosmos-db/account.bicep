@@ -32,6 +32,7 @@ resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
     capacity: {
       totalThroughputLimit: totalThroughputLimit
     }
+    minimalTlsVersion: 'Tls12'
   }
 }
 

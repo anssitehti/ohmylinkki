@@ -29,7 +29,7 @@ param containers array
 @description('List of secrets to be mounted in the container.')
 param secrets Secret[] = []
 
-resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: name
   location: location
   identity: {
@@ -37,7 +37,6 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
   properties: {
     environmentId: environmentId
-
     configuration: {
       ingress: {
         allowInsecure: false
@@ -45,7 +44,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         transport: 'auto'
         targetPort: targetPort
       }
-     secrets: secrets
+      secrets: secrets
     }
     template: {
       containers: containers
@@ -59,5 +58,5 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 output id string = containerApp.id
-output url string = containerApp.properties.latestRevisionFqdn
+output fqdn string = containerApp.properties.configuration.ingress.fqdn
 output principalId string = containerApp.identity.principalId
