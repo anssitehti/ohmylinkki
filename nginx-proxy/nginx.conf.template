@@ -1,4 +1,4 @@
-# Define rate limit zone - 5 request per second per IP
+# Define rate limit zone - 10 request per second per IP
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
 
 server {
