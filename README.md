@@ -78,23 +78,27 @@ Follow these steps to deploy the solution to Azure.
 
 Use following commands to create and push images to docker hub.
 
-Set username:
+Set username and versions.
 
 ```sh
 export DOCKER_HUB_USERNAME=<your_username>
+
+export OHMYLINKKI_API_VERSION=<version>
+export OHMYLINKKI_UI_VERSION=<version>
+export OHMYLINKKI_NGINX_PROXY=<version>
 ```
 
 Tag and push images to Docker Hub.
 
 ```sh
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-api:latest -f src/api/Dockerfile .
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-api:latest
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-api:$OHMYLINKKI_API_VERSION -f src/api/Dockerfile .
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-api:$OHMYLINKKI_API_VERSION
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-ui:latest -f src/ui/Dockerfile src/ui/
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:latest
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION -f src/ui/Dockerfile src/ui/
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:latest -f nginx-proxy/Dockerfile nginx-proxy
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:latest
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY -f nginx-proxy/Dockerfile nginx-proxy
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY
 
 ```
 

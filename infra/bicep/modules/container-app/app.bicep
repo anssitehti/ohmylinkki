@@ -1,3 +1,4 @@
+import { Secret } from './udd-types.bicep'
 @description('The resource name.')
 param name string
 
@@ -9,9 +10,6 @@ param environmentId string
 
 @description('Bool indicating if app exposes an external http endpoint.')
 param ingressExternal bool = true
-
-@description('Bool indicating if app allows insecure traffic.')
-param allowInsecure bool = false
 
 @description('Target Port in containers for traffic from ingress.')
 param targetPort int = 80
@@ -28,8 +26,10 @@ param workloadProfileName string = 'Consumption'
 @description('List of container definitions for the Container App.')
 param containers array
 
+@description('List of secrets to be mounted in the container.')
+param secrets Secret[] = []
 
-resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
   identity: {
@@ -37,13 +37,15 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   }
   properties: {
     environmentId: environmentId
+
     configuration: {
       ingress: {
-        allowInsecure: allowInsecure
+        allowInsecure: false
         external: ingressExternal
         transport: 'auto'
         targetPort: targetPort
       }
+     secrets: secrets
     }
     template: {
       containers: containers

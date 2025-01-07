@@ -6,6 +6,12 @@ param solution string
 
 param location string = deployment().location
 
+param nginxProxyImage string
+
+param apiImage string
+
+param uiImage string
+
 @secure()
 param walttiUsername string
 
@@ -84,11 +90,10 @@ module ui '../../modules/container-app/app.bicep' = {
     location: location
     environmentId: cae.outputs.id
     ingressExternal: false
-    allowInsecure: true
     targetPort: 80
     containers: [
       {
-        image: 'docker.io/matonen/ohmylinkki-ui:latest'
+        image: uiImage
         name: 'ohmylinkki-ui'
         resources: {
           cpu: json('0.25')
@@ -107,11 +112,20 @@ module api '../../modules/container-app/app.bicep' = {
     location: location
     environmentId: cae.outputs.id
     ingressExternal: false
-    allowInsecure: true
     targetPort: 8080
+    secrets: [
+      {
+        name: 'waltti-username'
+        value: walttiUsername
+      }
+      {
+        name: 'waltti-password'
+        value: walttiPassword
+      }
+    ]
     containers: [
       {
-        image: 'docker.io/matonen/ohmylinkki-api:latest'
+        image: apiImage
         name: 'ohmylinkki-api'
         resources: {
           cpu: json('0.25')
@@ -121,8 +135,8 @@ module api '../../modules/container-app/app.bicep' = {
           { name: 'OpenAi__Endpoint', value: openAi.outputs.endpoint }
           { name: 'CosmosDb__Endpoint', value: cosmosdb.outputs.endpoint }
           { name: 'WebPubSub__Endpoint', value: webPubSub.outputs.endpoint }
-          { name: 'LinkkiImport__WalttiUsername', value: walttiUsername }
-          { name: 'LinkkiImport__WalttiPassword', value: walttiPassword }
+          { name: 'LinkkiImport__WalttiUsername', secretRef: 'waltti-username' }
+          { name: 'LinkkiImport__WalttiPassword', secretRef: 'waltti-password' }
         ]
       }
     ]
@@ -140,15 +154,15 @@ module nginxProxy '../../modules/container-app/app.bicep' = {
     targetPort: 80
     containers: [
       {
-        image: 'docker.io/matonen/ohmylinkki-nginx-proxy:latest'
+        image: nginxProxyImage
         name: 'nginx-proxy'
         resources: {
           cpu: json('0.25')
           memory: '0.5Gi'
         }
         env: [
-          { name: 'API_URL', value: api.outputs.url }
-          { name: 'UI_URL', value: ui.outputs.url }
+          { name: 'API_URL', value: 'https://${api.outputs.url}' }
+          { name: 'UI_URL', value: 'https://${ui.outputs.url}' }
         ]
       }
     ]
