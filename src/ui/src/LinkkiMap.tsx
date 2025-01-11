@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { toast } from 'react-toastify';
 
 interface LinkkiPoint {
   id: string,
@@ -117,7 +118,8 @@ function LinkkiMap({ userId }: { userId: string }) {
         socket.close()
       }
     }
-  }, [socket, userId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   return (
     <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">

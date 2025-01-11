@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { FaRobot, FaUser } from 'react-icons/fa';
 
 interface Message {
     text: string;
@@ -11,12 +12,10 @@ interface Message {
 function LinkkiAiAssistant({ userId }: { userId: string }) {
     const [message, setMessage] = useState('')
     const [messages, setMessages] = useState<Message[]>([])
-
+    const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+
 
     const handleSend = async () => {
         if (message.trim()) {
@@ -27,8 +26,9 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             };
             setMessages(prev => [...prev, userMessage]);
             setMessage('');
-
+            setIsLoading(true);
             const response = await fetch(`api/chat?message=${message}&userId=${userId}`);
+            setIsLoading(false);
             if (!response.ok) {
                 toast.error('Failed to send message...');
                 return;
@@ -52,6 +52,9 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         }
     }
 
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
     return (
         <div className="w-[600px] h-[800px] flex flex-col bg-white rounded-xl shadow-sm">
             {/* Scrollable messages area */}
@@ -59,8 +62,13 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                         {!msg.isUser && (
+                            <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center mr-3">
+                                <FaRobot className="text-white text-sm" />
+                            </div>
+                        )}
+                        {msg.isUser && (
                             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
-                                <span className="text-white text-sm">AI</span>
+                                <FaUser className="text-white text-sm" />
                             </div>
                         )}
                         <div
@@ -76,6 +84,16 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         </div>
                     </div>
                 ))}
+                {isLoading && (
+                    <div className="flex justify-start">
+                        <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center mr-3">
+                            <FaRobot className="text-white text-sm" />
+                        </div>
+                        <div className="p-4 rounded-2xl max-w-[70%] shadow-sm bg-gray-100">
+                            <div>AI Assistant is typing...</div>
+                        </div>
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
 
@@ -92,14 +110,15 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                     />
                     <button
                         onClick={handleSend}
-                        className="px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                        className={`px-6 py-4 rounded-lg transition-colors shadow-sm ${message.trim() === '' ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                        disabled={message.trim() === ''}
                     >
                         Send
                     </button>
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
 
