@@ -51,6 +51,17 @@ Create `src/api/appsettings.Development.json` with the following structure:
 }
 ```
 
+Create `src/ui/.env` with the following structure to overwrite API_URL.
+
+```properties
+
+# Development in devcontainer (default)
+API_URL="http://localhost:5074"
+
+# Development with IDE on host
+# API_URL="http://host.docker.internal:5074"
+```
+
 ### Running the Application
 
 1. Start the backend:
@@ -85,7 +96,7 @@ export DOCKER_HUB_USERNAME=<your_username>
 
 export OHMYLINKKI_API_VERSION=<version>
 export OHMYLINKKI_UI_VERSION=<version>
-export OHMYLINKKI_NGINX_PROXY=<version>
+export OHMYLINKKI_NGINX_PROXY_VERSION=<version>
 ```
 
 Tag and push images to Docker Hub.
@@ -97,8 +108,8 @@ docker push $DOCKER_HUB_USERNAME/ohmylinkki-api:$OHMYLINKKI_API_VERSION
 docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION -f src/ui/Dockerfile src/ui/
 docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY -f nginx-proxy/Dockerfile nginx-proxy
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION -f nginx-proxy/Dockerfile nginx-proxy
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION
 
 ```
 

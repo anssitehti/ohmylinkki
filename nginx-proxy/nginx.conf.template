@@ -7,7 +7,7 @@ server {
     server_name _;
     # Forward /api requests to the backend API
     location /api/ {
-        # Apply rate limiting - burst of 10, no delay
+        # Apply rate limiting - burst of 20, no delay
         limit_req zone=api_limit burst=20 nodelay;
         
         # Return 429 Too Many Requests on rate limit
