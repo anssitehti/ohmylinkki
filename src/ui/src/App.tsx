@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface Message {
   text: string;
@@ -64,8 +66,9 @@ function App() {
         }
 
         setSocket(ws)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
-        console.error('ws connection failed:', error)
+        toast.error('Connection failure. Please refresh the page.')
       }
     }
 
@@ -76,7 +79,7 @@ function App() {
         socket.close()
       }
     }
-  }, [userId])
+  }, [socket, userId])
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -144,6 +147,11 @@ function App() {
       setMessage('');
 
       const response = await fetch(`api/chat?message=${message}&userId=${userId}`);
+      if (!response.ok) {
+        toast.error('Failed to send message...');
+        return;
+      }
+
       const json = await response.json();
 
       const aiMessage: Message = {
@@ -231,6 +239,7 @@ function App() {
           </div>
         </div>
       </main>
+      <ToastContainer />
     </div>
   )
 }
