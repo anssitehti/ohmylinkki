@@ -48,7 +48,7 @@ public class LinkkiLocationImporter : BackgroundService
     };
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
-        CosmosClient client,
+        CosmosClient cosmosClient,
         WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient)
     {
         _logger = logger;
@@ -58,8 +58,7 @@ public class LinkkiLocationImporter : BackgroundService
             Authenticator = new HttpBasicAuthenticator(_options.WalttiUsername, _options.WalttiPassword)
         };
         _client = new RestClient(restClientOptions);
-        var database = client.GetDatabase(linkkiOptions.Value.Database);
-        _container = database.GetContainer(linkkiOptions.Value.LocationContainer);
+        _container = cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.LocationContainer);
         _webPubSubServiceClient = webPubSubServiceClient;
     }
 

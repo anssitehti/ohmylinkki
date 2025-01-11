@@ -60,6 +60,11 @@ module cosmosdb '../../modules/cosmos-db/account.bicep' = {
             partitionKeyPath: '/line/name'
             defaultTtl: 3600
           }
+          {
+            name: 'routes'
+            partitionKeyPath: '/lineName'
+            defaultTtl: -1
+          }
         ]
       }
     ]

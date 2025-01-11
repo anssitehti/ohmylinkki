@@ -51,6 +51,17 @@ Create `src/api/appsettings.Development.json` with the following structure:
 }
 ```
 
+Create `src/ui/.env` with the following structure to overwrite API_URL.
+
+```properties
+
+# Development in devcontainer (default)
+API_URL="http://localhost:5074"
+
+# Development with IDE on host
+# API_URL="http://host.docker.internal:5074"
+```
+
 ### Running the Application
 
 1. Start the backend:

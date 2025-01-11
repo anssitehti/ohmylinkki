@@ -19,7 +19,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [socket, setSocket] = useState<WebSocket | null>(null)
-  const [userId] = useState(() => Math.random().toString(36).substring(2, 15))
+  const [userId] = useState(() => crypto.randomUUID())
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_mapPoints, setMapPoints] = useState<LinkkiPoint[]>([]);
   const mapRef = useRef<maplibregl.Map | null>(null);

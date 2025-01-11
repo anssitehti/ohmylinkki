@@ -33,7 +33,8 @@ builder.Services.AddSingleton<IChatCompletionService>(sp =>
 
 builder.Services.AddSingleton<LinkkiPlugin>();
 
-builder.Services.AddSingleton<IChatHistoryProvider>(new MemoryChatHistoryProvider());
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>();
 
 builder.Services.AddTransient((sp) =>
 {

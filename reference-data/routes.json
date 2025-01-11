@@ -1,0 +1,584 @@
+[
+    {
+        "lineName": "S1",
+        "route": [
+            "Haapaniemi",
+            "Vaajakoski",
+            "Halssila",
+            "Keskusta",
+            "Nova",
+            "Köhniö",
+            "Kortemäki"
+        ]
+    },
+    {
+        "lineName": "S2",
+        "route": [
+            "Kaunisharju",
+            "Vaajakoski",
+            "Halssila",
+            "Keskusta",
+            "Vanha keskussairaala",
+            "Kyllö",
+            "Köhniö",
+            "Kortemäki"
+        ]
+    },
+    {
+        "lineName": "S2M",
+        "route": [
+            "Kaunisharju",
+            "Vaajakoski",
+            "Vaajakosken moottoritie",
+            "Keskusta",
+            "Vanha keskussairaala",
+            "Kyllö",
+            "Köhniö",
+            "Kortemäki"
+        ]
+    },
+    {
+        "lineName": "S3",
+        "route": [
+            "Ristikivi",
+            "Kuokkala",
+            "Lutakko",
+            "Keskusta",
+            "Palokunnankatu",
+            "Kortepohja"
+        ]
+    },
+    {
+        "lineName": "S4",
+        "route": [
+            "Nenäinniemi",
+            "Kuokkala",
+            "Lutakko",
+            "Keskusta",
+            "Palokunnankatu",
+            "Kortepohja"
+        ]
+    },
+    {
+        "lineName": "S5",
+        "route": [
+            "Kaakkolampi",
+            "Kangaslampi",
+            "Ahjokatu",
+            "Keskusta",
+            "Laajavuori",
+            "Palokan marketit",
+            "Palokan tk"
+        ]
+    },
+    {
+        "lineName": "S6",
+        "route": [
+            "Lehtoniemi th",
+            "Palokka",
+            "Lohikoski",
+            "Kauppatori",
+            "Keskusta",
+            "Nova",
+            "Keltinmäki",
+            "Mustalampi"
+        ]
+    },
+    {
+        "lineName": "1M",
+        "route": [
+            "Haapaniemi/Kaunisharju",
+            "Vaajakoski",
+            "Jyskän varastomyymälä",
+            "Vaajakosken moottoritie",
+            "Kauppatori",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "2V",
+        "route": [
+            "Kaunisharju",
+            "Vaajakoski",
+            "Kauppatori",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "3",
+        "route": [
+            "Vaajala/Leppävedentie",
+            "Urheilutie",
+            "Asmalampi",
+            "Halssilanrinne",
+            "Halssila",
+            "Keskusta",
+            "(Nova)"
+        ]
+    },
+    {
+        "lineName": "3K",
+        "route": [
+            "Halssila",
+            "Seppäläntie",
+            "Kangasvuori",
+            "Huhtaharjun koulu"
+        ]
+    },
+    {
+        "lineName": "4K",
+        "route": [
+            "Viherlandia",
+            "Väinölä",
+            "Valmetintie",
+            "Jyskä",
+            "Vaajakoski/Vesmanninmäki"
+        ]
+    },
+    {
+        "lineName": "5",
+        "route": [
+            "Keskusta",
+            "Mattilanniemi",
+            "Ylistönmäki",
+            "Survontie",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "5K",
+        "route": [
+            "Kortepohja",
+            "Viitaniemi",
+            "Kauppatori",
+            "Keskusta",
+            "Mattilanniemi",
+            "Ylistönmäki",
+            "Survontie",
+            "Kuokkala",
+            "Lutakko",
+            "Kauppatori",
+            "Viitaniemi",
+            "Kortepohja"
+        ]
+    },
+    {
+        "lineName": "7",
+        "route": [
+            "Sarvivuoren th",
+            "Sääksvuori",
+            "Kaijanlampi",
+            "9-tie",
+            "Länsi-Päijänteentie",
+            "Keskusta",
+            "Kauppatori",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "8",
+        "route": [
+            "Kuokkala",
+            "Ainola",
+            "Kekkola",
+            "Tikka",
+            "Ristonmaa",
+            "Keskusta",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "9",
+        "route": [
+            "Vaajakoski",
+            "Viherlandia",
+            "Kuokkala",
+            "Keskusta",
+            "Nova",
+            "Laajavuori",
+            "Savulahti"
+        ]
+    },
+    {
+        "lineName": "9K",
+        "route": [
+            "Vaajakoski",
+            "Viherlandia",
+            "Kuokkala",
+            "Kekkola",
+            "Ainola",
+            "Keskusta",
+            "Nova",
+            "Laajavuori",
+            "Savulahti"
+        ]
+    },
+    {
+        "lineName": "12",
+        "route": [
+            "Kangaslampi",
+            "Lohikoskentie",
+            "Keskusta",
+            "Keljon marketit",
+            "Myllyjärvi",
+            "Keltinmäki"
+        ]
+    },
+    {
+        "lineName": "12K",
+        "route": [
+            "Keskusta",
+            "Kuormaajantie",
+            "Palokangas"
+        ]
+    },
+    {
+        "lineName": "13",
+        "route": [
+            "Tikkala",
+            "Saukkola",
+            "Isolahti",
+            "Nova",
+            "Keskusta",
+            "Kauppatori"
+        ]
+    },
+    {
+        "lineName": "14",
+        "route": [
+            "Muurame",
+            "Keljonkangas",
+            "Myllyjärvi",
+            "Nova",
+            "Keskusta",
+            "Kangas",
+            "Kangaslampi"
+        ]
+    },
+    {
+        "lineName": "14M",
+        "route": [
+            "Verkkoniemi",
+            "Muurame",
+            "9-tie",
+            "Keskusta",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "15",
+        "route": [
+            "Viherlandia",
+            "Hämeenpohjantie",
+            "Kuokkalanpelto",
+            "Kuokkala",
+            "Tikka",
+            "Ristonmaa",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "15K",
+        "route": [
+            "Viherlandia",
+            "Sulkulantie",
+            "Kuokkala",
+            "Keskusta",
+            "Kauppatori",
+            "Viitaniemi",
+            "Vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "16",
+        "route": [
+            "Muuratsalo",
+            "Säynätsalo",
+            "Kinkomaa",
+            "Keljonkangas",
+            "Keskusta",
+            "Kauppatori",
+            "Viitaniemi",
+            "vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "16M",
+        "route": [
+            "(Muuratsalo)",
+            "Säynätsalo",
+            "Kinkomaa",
+            "Keljonkangas",
+            "9-tie",
+            "Keskusta",
+            "Kauppatori",
+            "Viitaniemi"
+        ]
+    },
+    {
+        "lineName": "20",
+        "route": [
+            "Pupuhuhta",
+            "Kangas",
+            "Keskusta",
+            "Keljonkangas",
+            "Kauramäki"
+        ]
+    },
+    {
+        "lineName": "21",
+        "route": [
+            "Muurame",
+            "Säynätsalo",
+            "Kinkomaa",
+            "Keljonkangas",
+            "Keskusta",
+            "Kauppatori"
+        ]
+    },
+    {
+        "lineName": "22",
+        "route": [
+            "Tikkakoski",
+            "Puuppola",
+            "Saarijärventie",
+            "Palokan marketit",
+            "Mannila",
+            "Mankola",
+            "Keskusta",
+            "Vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "22M",
+        "route": [
+            "(Ilmavoimien esikunta)",
+            "Länsiranta",
+            "Tikkakoski",
+            "4-tie",
+            "Keskusta",
+            "Vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "23",
+        "route": [
+            "Kirri",
+            "Palokan marketit",
+            "Mannila",
+            "Mankola",
+            "Keskusta",
+            "Vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "26",
+        "route": [
+            "(Jylhä)",
+            "Jylhänperä",
+            "Hiekkapohja",
+            "Palokka",
+            "Heinälampi",
+            "Kauppatori",
+            "Keskusta",
+            "(Mattilanniemi",
+            "Ylistönmäki)"
+        ]
+    },
+    {
+        "lineName": "31",
+        "route": [
+            "(Ilomäki)",
+            "Saarenmaa",
+            "Lintukangas/Haukkamäki",
+            "Palokan marketit",
+            "Mannila",
+            "Mankola",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "32",
+        "route": [
+            "Nyrölä",
+            "Ilomäki",
+            "Saarenmaa",
+            "Palokan marketit",
+            "Palokka",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "34",
+        "route": [
+            "Jylhä",
+            "Puuppola",
+            "Nyrölä",
+            "Tikkakoski-alueen päiväkotikyydit"
+        ]
+    },
+    {
+        "lineName": "36",
+        "route": [
+            "(Ilmavoimien esikunta)",
+            "Länsiranta",
+            "Tervajoentie",
+            "Matinmäki",
+            "Heikkilä",
+            "Palokka",
+            "Heinälampi",
+            "Seppälä",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "37",
+        "route": [
+            "Keskusta",
+            "Mankola",
+            "Mannila",
+            "Palokan marketit",
+            "Nuutti",
+            "Ruoke",
+            "Vesangantie",
+            "Köhniö",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "38",
+        "route": [
+            "Toivakka",
+            "Oravasaari",
+            "Vaajakoski",
+            "Halssila",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "38K",
+        "route": [
+            "(Toivakka)",
+            "Keikkala",
+            "Leppälahti",
+            "(Ysitien Lemmikki)",
+            "Vaajakosken koulut",
+            "Halssila",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "38R",
+        "route": [
+            "Keskusta",
+            "Vaajakoski",
+            "Ruuhimäki",
+            "Kankainen",
+            "Huikko",
+            "Toivakka"
+        ]
+    },
+    {
+        "lineName": "39",
+        "route": [
+            "Ruoke",
+            "Laajavuori",
+            "Viitaniemi",
+            "Kauppatori",
+            "Keskusta",
+            "Kyllö",
+            "Köhniö",
+            "Ruoke"
+        ]
+    },
+    {
+        "lineName": "40",
+        "route": [
+            "Kuohu",
+            "Ruoke",
+            "Kypärämäki",
+            "Nova",
+            "Vanha keskussairaala",
+            "Viitaniemi",
+            "Kauppatori",
+            "Keskusta"
+        ]
+    },
+    {
+        "lineName": "41",
+        "route": [
+            "(Vanha keskussairaala)",
+            "Keskusta",
+            "Laukaa",
+            "(Peurunka)"
+        ]
+    },
+    {
+        "lineName": "42",
+        "route": [
+            "Lievestuore",
+            "Tarvaala",
+            "Leppävesi",
+            "Vaajakoski",
+            "Halssila",
+            "Keskusta",
+            "Vanha keskussairaala"
+        ]
+    },
+    {
+        "lineName": "45",
+        "route": [
+            "Vaajakoski (Panda)",
+            "Seppä",
+            "Palokan terveysasema"
+        ]
+    },
+    {
+        "lineName": "46",
+        "route": [
+            "Viherlandia",
+            "Kuokkala",
+            "Keljon marketit",
+            "Nova"
+        ]
+    },
+    {
+        "lineName": "113",
+        "route": [
+            "Keskusta",
+            "Muurame",
+            "Niittyaho (Teollisuuskylä)",
+            "Korpilahti"
+        ]
+    },
+    {
+        "lineName": "140",
+        "route": [
+            "Jyväskylä",
+            "Äänekoski",
+            "Suolahti"
+        ]
+    },
+    {
+        "lineName": "141",
+        "route": [
+            "Äänekoski",
+            "Suolahti",
+            "Laukaa",
+            "Jyväskylä"
+        ]
+    },
+    {
+        "lineName": "143",
+        "route": [
+            "Keskusta/Matkakeskus",
+            "Halssila",
+            "Vaajakoski",
+            "Leppälahti",
+            "Kelkkamäki",
+            "Lievestuore",
+            "Niemisjärvi",
+            "Hankasalmi"
+        ]
+    }
+]
