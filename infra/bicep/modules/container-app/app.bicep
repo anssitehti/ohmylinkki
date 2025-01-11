@@ -29,6 +29,12 @@ param containers array
 @description('List of secrets to be mounted in the container.')
 param secrets Secret[] = []
 
+@description('The custom domain for the container app.')
+param customDomain string = ''
+
+@description('The resource id of the managed certificate.')
+param managedEnvironmentManagedCertificateId string = ''
+
 resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: name
   location: location
@@ -43,6 +49,15 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
         external: ingressExternal
         transport: 'auto'
         targetPort: targetPort
+        customDomains: !empty(customDomain)
+          ? [
+              {
+                name: customDomain
+                certificateId: managedEnvironmentManagedCertificateId
+                bindingType: 'SniEnabled'
+              }
+            ]
+          : null
       }
       secrets: secrets
     }

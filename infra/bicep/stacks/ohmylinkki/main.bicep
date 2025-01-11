@@ -18,6 +18,10 @@ param walttiUsername string
 @secure()
 param walttiPassword string
 
+param customDomain string = ''
+
+param managedEnvironmentManagedCertificateId string = ''
+
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: 'rg-${solution}-${env}'
   location: location
@@ -57,7 +61,6 @@ module cosmosdb '../../modules/cosmos-db/account.bicep' = {
             defaultTtl: 3600
           }
         ]
-        dataContributors: [deployer().objectId]
       }
     ]
   }
@@ -152,6 +155,8 @@ module nginxProxy '../../modules/container-app/app.bicep' = {
     environmentId: cae.outputs.id
     ingressExternal: true
     targetPort: 80
+    customDomain: customDomain
+    managedEnvironmentManagedCertificateId: managedEnvironmentManagedCertificateId
     containers: [
       {
         image: nginxProxyImage
@@ -188,6 +193,16 @@ module openAiUserRoleAssignment '../../modules/open-ai/role-assignment.bicep' = 
     principalIds: [deployer().objectId, api.outputs.principalId]
     resourceId: openAi.outputs.id
     roleName: 'Cognitive Services OpenAI User'
+  }
+  scope: rg
+}
+
+module cosmosdbDataContributorRoleAssignment '../../modules/cosmos-db/data-role-assignment.bicep' = {
+  name: 'cosmosdbDataContributorRoleAssignment'
+  params: {
+    principalIds: [deployer().objectId, api.outputs.principalId]
+    accountName: cosmosdb.outputs.name
+    roleName: 'Cosmos DB Built-in Data Contributor'
   }
   scope: rg
 }

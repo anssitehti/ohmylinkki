@@ -44,11 +44,11 @@ module accountDatabases 'sql-database.bicep' = [
       containers: database.containers
       throughput: database.throughput
       accountName: account.name
-      dataContributors: database.dataContributors
     }
   }
 ]
 
 
+output name string = account.name
 output id string = account.id
 output endpoint string = account.properties.documentEndpoint

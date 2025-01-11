@@ -8,9 +8,6 @@ type SqlDatabase = {
 
   @description('Containers in the database.')
   containers: Container[]
-
-  @description('List of identities that have read and write access to the database.')
-  dataContributors: string[]
 }
 
 @export()
