@@ -11,7 +11,7 @@ namespace Api.AI;
 public class LinkkiPlugin
 {
     private readonly Container _container;
-    
+
     public LinkkiPlugin(CosmosClient client, IOptions<LinkkiOptions> options)
     {
         var database = client.GetDatabase(options.Value.Database);
@@ -21,25 +21,32 @@ public class LinkkiPlugin
     [KernelFunction("get_linkki_location")]
     [Description("Gets a current location of Linkki line.")]
     [return: Description("The current location of the linkki.")]
-    public async Task<dynamic?> GetLocationAsync(string line, string destination)
+    public async Task<IEnumerable<dynamic>> GetLocationAsync(string line)
     {
+        if (string.IsNullOrEmpty(line))
+        {
+            return [];
+        }
+
         var query = _container.GetItemLinqQueryable<LinkkiLocation>()
-            .Where(l => l.Line.Name.ToLower() == line.ToLower() && l.Vehicle.Headsign.ToLower() == destination.ToLower())
+            .Where(l => l.Line.Name.ToLower() == line.ToLower())
             .OrderByDescending(l => l.Timestamp).Take(1);
-        Console.WriteLine(query.ToString());
+        var results = new List<dynamic>();
         using var iterator = query.ToFeedIterator();
         while (iterator.HasMoreResults)
         {
             foreach (var item in await iterator.ReadNextAsync())
             {
-                return new
+                results.Add(new
                 {
                     location = item.Location,
                     speed = item.Vehicle.Speed,
-                    bearing = item.Vehicle.Bearing
-                };
+                    bearing = item.Vehicle.Bearing,
+                    headsign = item.Vehicle.Headsign
+                });
             }
         }
-        return null;
+
+        return results;
     }
 }

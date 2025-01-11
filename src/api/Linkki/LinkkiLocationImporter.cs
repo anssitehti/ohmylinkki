@@ -43,7 +43,8 @@ public class LinkkiLocationImporter : BackgroundService
         { "9451", "45" },
         { "12", "141" },
         { "6141", "14" },
-        { "9431", "143" }
+        { "9431", "143" },
+        { "13", "140" }
     };
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
@@ -192,7 +193,7 @@ public class LinkkiLocationImporter : BackgroundService
                     new
                     {
                         id = location.Id,
-                        line = location.Line.Name, 
+                        line = location.Line.Name,
                         location = location.Location
                     })), ContentType.ApplicationJson);
         }

@@ -5,7 +5,7 @@ namespace Api;
 public class CosmosDbOptions
 {
     [Required]
-    public required string ConnectionString { get; init; } 
+    public required string Endpoint { get; init; } 
 }
 
 
