@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaRobot, FaUser } from 'react-icons/fa';
+import { FaRobot, FaUserCircle } from 'react-icons/fa';
 
 interface Message {
     text: string;
@@ -8,14 +8,23 @@ interface Message {
     isUser: boolean;
 }
 
+interface ChatMessageRequest {
+    userId: string;
+    message: string;
+}
+
 
 function LinkkiAiAssistant({ userId }: { userId: string }) {
     const [message, setMessage] = useState('')
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<Message[]>([
+        {
+            text: 'Hello, how can I help you?',
+            timestamp: new Date(),
+            isUser: false
+        }
+    ]);
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-
 
     const handleSend = async () => {
         if (message.trim()) {
@@ -27,7 +36,13 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             setMessages(prev => [...prev, userMessage]);
             setMessage('');
             setIsLoading(true);
-            const response = await fetch(`api/chat?message=${message}&userId=${userId}`);
+
+            const chatMessageRequest: ChatMessageRequest = {
+                userId: userId,
+                message: message.trim()
+            }
+
+            const response = await fetch(`api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
             setIsLoading(false);
             if (!response.ok) {
                 toast.error('Failed to send message...');
@@ -68,7 +83,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         )}
                         {msg.isUser && (
                             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center mr-3">
-                                <FaUser className="text-white text-sm" />
+                                <FaUserCircle className="text-white text-sm" />
                             </div>
                         )}
                         <div
@@ -90,7 +105,9 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                             <FaRobot className="text-white text-sm" />
                         </div>
                         <div className="p-4 rounded-2xl max-w-[70%] shadow-sm bg-gray-100">
-                            <div>AI Assistant is typing...</div>
+                            <span className="text-gray-500 italic text-sm">
+                                AI Assistant is typing...
+                            </span>
                         </div>
                     </div>
                 )}
