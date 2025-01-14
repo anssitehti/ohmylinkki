@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { toast } from 'react-toastify';
+import useWebSocket from 'react-use-websocket';
 
 interface LinkkiPoint {
   id: string,
@@ -10,10 +10,24 @@ interface LinkkiPoint {
 }
 
 function LinkkiMap({ userId }: { userId: string }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_mapPoints, setMapPoints] = useState<LinkkiPoint[]>([]);
+
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null)
+
+
+  const getSocketUrl = useCallback(async () => {
+    const response = await fetch(`api/negotiate?id=${userId}`)
+    const data = await response.json()
+    return data.url;
+
+  }, [userId]);
+
+  const { lastJsonMessage } = useWebSocket(getSocketUrl, {
+    shouldReconnect: () => true,
+    retryOnError: true,
+    reconnectAttempts: 100,
+    reconnectInterval: (attemptNumber) =>
+      Math.min(Math.pow(2, attemptNumber) * 1000, 10000),
+  });
 
   useEffect(() => {
     const map = new maplibregl.Map({
@@ -66,60 +80,33 @@ function LinkkiMap({ userId }: { userId: string }) {
     };
   }, []);
 
+
+
   useEffect(() => {
-    const initializeConnection = async () => {
-      try {
-
-        const response = await fetch(`api/negotiate?id=${userId}`)
-
-        const data = await response.json()
-
-        const ws = new WebSocket(data.url)
-
-        ws.onmessage = (event) => {
-          const data: LinkkiPoint[] = JSON.parse(event.data);
-
-          setMapPoints(data);
-
-          requestAnimationFrame(() => {
-            if (mapRef.current) {
-              const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
-              if (source) {
-                source.setData({
-                  type: 'FeatureCollection',
-                  features: data.map(point => ({
-                    type: 'Feature',
-                    geometry: {
-                      type: 'Point',
-                      coordinates: point.location.coordinates
-                    },
-                    properties: {
-                      id: point.id,
-                      description: point.line
-                    }
-                  }))
-                });
+    const data: LinkkiPoint[] = lastJsonMessage as LinkkiPoint[];
+    requestAnimationFrame(() => {
+      if (mapRef.current) {
+        const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
+        if (source) {
+          source.setData({
+            type: 'FeatureCollection',
+            features: data.map(point => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: point.location.coordinates
+              },
+              properties: {
+                id: point.id,
+                description: point.line
               }
-            }
+            }))
           });
         }
-
-        setSocket(ws)
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
-        toast.error('Connection failure. Please refresh the page.')
       }
-    }
+    });
+  }, [lastJsonMessage])
 
-    initializeConnection()
-
-    return () => {
-      if (socket) {
-        socket.close()
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
 
   return (
     <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
