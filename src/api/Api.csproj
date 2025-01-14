@@ -9,16 +9,18 @@
 
     <ItemGroup>
         <PackageReference Include="Azure.Identity" Version="1.13.1" />
-        <PackageReference Include="Google.Protobuf" Version="3.29.2" />
-        <PackageReference Include="Grpc.Tools" Version="2.68.1">
+        <PackageReference Include="FluentValidation" Version="11.11.0" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+        <PackageReference Include="Google.Protobuf" Version="3.29.3" />
+        <PackageReference Include="Grpc.Tools" Version="2.69.0">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+        <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.1" />
         <PackageReference Include="Microsoft.Azure.WebPubSub.AspNetCore" Version="1.4.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
-        <PackageReference Include="Microsoft.SemanticKernel" Version="1.32.0" />
+        <PackageReference Include="Microsoft.SemanticKernel" Version="1.33.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="RestSharp" Version="112.1.0" />
     </ItemGroup>

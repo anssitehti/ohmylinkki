@@ -2,6 +2,8 @@ using Api;
 using Api.AI;
 using Api.Linkki;
 using Azure.Identity;
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Extensions.Options;
@@ -60,6 +62,7 @@ builder.Services.AddWebPubSub(o =>
             new WebPubSubServiceEndpoint(new Uri(builder.Configuration["WebPubSub:Endpoint"]!), azureCredential))
     .AddWebPubSubServiceClient<LinkkiHub>();
 
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
 
@@ -72,10 +75,10 @@ app.MapHealthChecks("/healthz/startup");
 app.MapHealthChecks("/healthz/readiness");
 app.MapHealthChecks("/healthz/liveness");
 
-app.MapGet("api/chat", async (string message, string userId, Kernel kernel, IChatHistoryProvider chatHistoryProvider) =>
+app.MapPost("api/chat", async (UserChatMessage message, Kernel kernel, IChatHistoryProvider chatHistoryProvider) =>
 {
-    var chatHistory = await chatHistoryProvider.GetHistoryAsync(userId);
-    chatHistory.AddUserMessage(message);
+    var chatHistory = await chatHistoryProvider.GetHistoryAsync(message.UserId);
+    chatHistory.AddUserMessage(message.Message);
 
     var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
     var result = await chatCompletionService.GetChatMessageContentAsync(chatHistory,
@@ -89,21 +92,22 @@ app.MapGet("api/chat", async (string message, string userId, Kernel kernel, ICha
     {
         message = result.Content
     };
-});
+}).AddEndpointFilter<ValidationFilter<UserChatMessage>>();
 
-app.MapGet("api/negotiate", (WebPubSubServiceClient<LinkkiHub> service, HttpContext context) =>
+app.MapGet("api/negotiate", ([FromQuery] string? id, WebPubSubServiceClient<LinkkiHub> service) =>
 {
-    var id = context.Request.Query["id"];
     if (StringValues.IsNullOrEmpty(id))
     {
-        context.Response.StatusCode = 400;
-        return null;
+        return Results.ValidationProblem(new Dictionary<string, string[]>()
+        {
+            { "id", ["The id is required."] }
+        });
     }
 
-    return new
+    return Results.Ok(new
     {
         url = service.GetClientAccessUri(userId: id).AbsoluteUri
-    };
+    });
 });
 
 app.Run();
