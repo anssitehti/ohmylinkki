@@ -44,7 +44,9 @@ public class LinkkiLocationImporter : BackgroundService
         { "12", "141" },
         { "6141", "14" },
         { "9431", "143" },
-        { "13", "140" }
+        { "13", "140" },
+        {"9141", "14" },
+        {"9391", "40"}
     };
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
