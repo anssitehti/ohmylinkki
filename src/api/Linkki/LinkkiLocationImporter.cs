@@ -195,7 +195,8 @@ public class LinkkiLocationImporter : BackgroundService
                     {
                         id = location.Id,
                         line = location.Line.Name,
-                        location = location.Location
+                        location = location.Location,
+                        bearing = location.Vehicle.Bearing,
                     })), ContentType.ApplicationJson);
         }
         catch (Exception ex)

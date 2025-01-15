@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
 import useWebSocket from 'react-use-websocket';
+import linkkiMapIcon from "./assets/linkki-map-icon.svg";
+
 
 interface LinkkiPoint {
   id: string,
   line: string;
   location: { type: string, coordinates: [number, number] };
+  bearing: number;
 }
 
 function LinkkiMap({ userId }: { userId: string }) {
@@ -51,15 +54,21 @@ function LinkkiMap({ userId }: { userId: string }) {
         }
       });
 
+      const svgImage = new Image(40, 40);
+      svgImage.src = linkkiMapIcon;
+      svgImage.onload = () => {
+        map.addImage('linkki-icon', svgImage)
+      }
+
       map.addLayer({
         id: 'points',
-        type: 'circle',
+        type: 'symbol',
         source: 'points',
-        paint: {
-          'circle-radius': 15,
-          'circle-color': '#129d2d',
-          'circle-stroke-width': 1,
-          'circle-stroke-color': '#fff'
+        layout: {
+          'icon-image': 'linkki-icon',
+          'icon-size': 1,
+          'icon-allow-overlap': true,
+          'icon-rotate': ['get', 'bearing'],
         }
       });
 
@@ -72,6 +81,8 @@ function LinkkiMap({ userId }: { userId: string }) {
           'text-justify': 'center',
         }
       });
+
+
 
     });
 
@@ -98,7 +109,8 @@ function LinkkiMap({ userId }: { userId: string }) {
               },
               properties: {
                 id: point.id,
-                description: point.line
+                description: point.line,
+                bearing: point.bearing
               }
             }))
           });
