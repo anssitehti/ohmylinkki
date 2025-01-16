@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaRobot, FaUserCircle } from 'react-icons/fa';
+import { FaRobot, FaUserCircle, FaLocationArrow } from 'react-icons/fa';
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -26,40 +26,46 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         }
     ]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingLocation, setIsFetchingLocation] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const handleSend = async () => {
-        if (message.trim()) {
-            const userMessage: Message = {
-                text: message,
-                timestamp: new Date(),
-                isUser: true
-            };
-            setMessages(prev => [...prev, userMessage]);
-            setMessage('');
-            setIsLoading(true);
+    const sendMessage = async (message: string) => {
+        const userMessage: Message = {
+            text: message.trim(),
+            timestamp: new Date(),
+            isUser: true
+        };
+        setMessages(prev => [...prev, userMessage]);
+        setMessage('');
+        setIsLoading(true);
 
-            const chatMessageRequest: ChatMessageRequest = {
-                userId: userId,
-                message: message.trim()
-            }
-
-            const response = await fetch(`api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
-            setIsLoading(false);
-            if (!response.ok) {
-                toast.error('Failed to send message...');
-                return;
-            }
-
-            const json = await response.json();
-
-            const aiMessage: Message = {
-                text: json.message,
-                timestamp: new Date(),
-                isUser: false
-            };
-            setMessages(prev => [...prev, aiMessage]);
+        const chatMessageRequest: ChatMessageRequest = {
+            userId: userId,
+            message: message.trim()
         }
+
+        const response = await fetch(`api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
+        setIsLoading(false);
+        if (!response.ok) {
+            toast.error('Failed to send message...');
+            return;
+        }
+
+        const json = await response.json();
+
+        const aiMessage: Message = {
+            text: json.message,
+            timestamp: new Date(),
+            isUser: false
+        };
+        setMessages(prev => [...prev, aiMessage]);
+    };
+
+    const handleSend = async () => {
+        if (message.trim() === '') {
+            return;
+        }
+        await sendMessage(message);
     }
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -68,6 +74,25 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             handleSend()
         }
     }
+    const shareLocation = () => {
+        setIsFetchingLocation(true);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    setIsFetchingLocation(false);
+                    const { latitude, longitude } = position.coords;
+                    const locationMessage = `Here is my location: [${latitude},${longitude}]`;
+                    await sendMessage(locationMessage);
+                },
+                (error) => {
+                    console.error("Error fetching location:", error);
+                }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
+        }
+        setIsFetchingLocation(false);
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -133,6 +158,14 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         disabled={message.trim() === ''}
                     >
                         Send
+                    </button>
+                    <button
+                        onClick={shareLocation}
+                        disabled={isFetchingLocation}
+                        className="text-green-500 hover:text-green-700 p-2 rounded"
+                        title="Share Location"
+                    >
+                        <FaLocationArrow className="w-5 h-5" />
                     </button>
                 </div>
             </div>
