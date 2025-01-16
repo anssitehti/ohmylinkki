@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { FaRobot, FaUserCircle } from 'react-icons/fa';
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
     text: string;
@@ -92,7 +94,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                                 : 'bg-gray-100'
                                 }`}
                         >
-                            <div>{msg.text}</div>
+                            <div className="justify-left"><Markdown className="text-left" remarkPlugins={[remarkGfm]}>{msg.text}</Markdown></div>
                             <div className={`text-xs mt-1 ${msg.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
                                 {msg.timestamp.toLocaleTimeString()}
                             </div>

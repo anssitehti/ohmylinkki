@@ -23,7 +23,7 @@ public class LinkkiPlugin
     [Description("Gets a current location of linkki by line. Line is required.")]
     [return:
         Description(
-            "The current location of the line. It can return multiple locations because there can be multiple buses on the same line but in different locations and heading to different destinations.")]
+            "The current location of the line. It can return multiple locations because there can be multiple buses on the same line but in different locations and heading to different destinations. Location is in GeoJSON format.")]
     public async Task<List<LinkkiLocationDetails>> GetLocationsAsync(string line)
     {
         var query = _locationContainer.GetItemLinqQueryable<LinkkiLocation>()

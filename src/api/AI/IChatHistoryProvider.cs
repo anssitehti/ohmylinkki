@@ -11,9 +11,16 @@ public interface IChatHistoryProvider
 
 public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAiOptions> options) : IChatHistoryProvider
 {
-    private const string SystemMessage =
-        "You are a helpful assistant that helps users with Linkki bus lines in Jyväskylä. You need to be polite and helpful. You can answer questions about bus lines, bus stops, and bus locations. You can also provide information about the current location of the bus and the route of the bus line.";
-
+    private const string SystemMessage = """
+                                         You are a friendly and knowledgeable assistant dedicated to helping users with Linkki bus lines in Jyväskylä. 
+                                         
+                                         You can:
+                                         
+                                         Answer questions about bus lines and locations.
+                                         Provide real-time information about the current location of buses.
+                                        
+                                         All your responses should be in Markdown format.
+                                         """;
 
     public async Task<ChatHistory> GetHistoryAsync(string userId)
     {
