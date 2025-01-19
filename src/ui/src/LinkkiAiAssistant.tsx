@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaRobot, FaUserCircle, FaLocationArrow } from 'react-icons/fa';
+import { FaRobot, FaUserCircle, FaLocationArrow, FaArrowUp } from 'react-icons/fa';
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -81,7 +81,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                 async (position) => {
                     setIsFetchingLocation(false);
                     const { latitude, longitude } = position.coords;
-                    const locationMessage = `Here is my location: [${latitude},${longitude}]`;
+                    const locationMessage = `My location is: [${latitude},${longitude}]`;
                     await sendMessage(locationMessage);
                 },
                 (error) => {
@@ -154,15 +154,15 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                     />
                     <button
                         onClick={handleSend}
-                        className={`px-6 py-4 rounded-lg transition-colors shadow-sm ${message.trim() === '' ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                        className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600"
                         disabled={message.trim() === ''}
                     >
-                        Send
+                        <FaArrowUp className="w-5 h-5" />
                     </button>
                     <button
                         onClick={shareLocation}
                         disabled={isFetchingLocation}
-                        className="text-green-500 hover:text-green-700 p-2 rounded"
+                        className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600'"
                         title="Share Location"
                     >
                         <FaLocationArrow className="w-5 h-5" />

@@ -54,7 +54,7 @@ function LinkkiMap({ userId }: { userId: string }) {
         }
       });
 
-      const svgImage = new Image(40, 40);
+      const svgImage = new Image(35, 35);
       svgImage.src = linkkiMapIcon;
       svgImage.onload = () => {
         map.addImage('linkki-icon', svgImage)
