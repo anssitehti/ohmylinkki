@@ -1,5 +1,6 @@
 using Azure.Core;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Spatial;
 using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Extensions.Options;
 using RestSharp;
@@ -68,6 +69,37 @@ public class LinkkiLocationImporter : BackgroundService
         { "9143", "14M" },
         { "9151", "15" },
         { "9153", "15K" },
+        { "9161", "16" },
+        { "9163", "16M" },
+        { "9201", "20" },
+        { "9211", "21" },
+        { "9221", "22" },
+        { "9223", "22M" },
+        { "9227", "22" },
+        { "9231", "23" },
+        { "9261", "26" },
+        { "9311", "31" },
+        { "9321", "32" },
+        { "9341", "34" },
+        { "9342", "34" },
+        { "9361", "36" },
+        { "9372", "37" },
+        { "9381", "38" },
+        { "9383", "38K" },
+        { "9385", "38R" },
+        { "9391", "39" },
+        { "9401", "40" },
+        { "9411", "41" },
+        { "9414", "41" },
+        { "9423", "42" },
+        { "9431", "143" },
+        { "9451", "45" },
+        { "9461", "46" },
+        { "9601", "TARVAALA" },
+        { "9603", "NOJOSNIEMI" },
+        { "9604", "41" },
+        { "9801", "100" },
+        { "9802", "100" }
     };
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
@@ -156,15 +188,7 @@ public class LinkkiLocationImporter : BackgroundService
         {
             Id = feedEntity.Vehicle.Vehicle.Id,
             Timestamp = DateTimeOffset.FromUnixTimeSeconds((long)feedEntity.Vehicle.Timestamp),
-            Location =
-                new GeoJson()
-                {
-                    Type = "Point",
-                    Coordinates =
-                    [
-                        feedEntity.Vehicle.Position.Longitude, feedEntity.Vehicle.Position.Latitude
-                    ]
-                },
+            Location = new Point(feedEntity.Vehicle.Position.Longitude, feedEntity.Vehicle.Position.Latitude),
             Line = new Line
             {
                 Name = line,
@@ -192,7 +216,7 @@ public class LinkkiLocationImporter : BackgroundService
             {
                 try
                 {
-                    await _container.UpsertItemAsync(location, new PartitionKey(location.Line.Name),
+                    await _container.UpsertItemAsync(location, new PartitionKey(location.Type),
                         cancellationToken: cancellationToken);
                 }
                 catch (CosmosException ex)
@@ -216,7 +240,7 @@ public class LinkkiLocationImporter : BackgroundService
                     {
                         id = location.Id,
                         line = location.Line.Name,
-                        location = location.Location,
+                        coordinates = location.Location.Position.Coordinates,
                         bearing = location.Vehicle.Bearing,
                     })), ContentType.ApplicationJson);
         }

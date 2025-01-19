@@ -80,8 +80,9 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     setIsFetchingLocation(false);
-                    const { latitude, longitude } = position.coords;
-                    const locationMessage = `My location is: [${latitude},${longitude}]`;
+                    const { longitude, latitude } = position.coords;
+
+                    const locationMessage = `My location is: Longitude: ${longitude}, Latitude: ${latitude}]`;
                     await sendMessage(locationMessage);
                 },
                 (error) => {

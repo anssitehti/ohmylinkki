@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Api.Linkki;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Azure.Cosmos.Spatial;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Container = Microsoft.Azure.Cosmos.Container;
@@ -23,11 +24,11 @@ public class LinkkiPlugin
     [Description("Gets a current location of linkki by line. Line is required.")]
     [return:
         Description(
-            "The current location of the line. It can return multiple locations because there can be multiple buses on the same line but in different locations and heading to different destinations. Location is in GeoJSON format.")]
+            "The current location of the line. It can return multiple locations because there can be multiple buses on the same line but in different locations and heading to different destinations.")]
     public async Task<List<LinkkiLocationDetails>> GetLocationsAsync(string line)
     {
         var query = _locationContainer.GetItemLinqQueryable<LinkkiLocation>()
-            .Where(l => l.Line.Name.ToLower() == line.ToLower());
+            .Where(l => l.Line.Name.ToLower() == line.ToLower() && l.Type == "bus");
 
         var details = new List<LinkkiLocationDetails>();
         using var iterator = query.ToFeedIterator();
@@ -37,7 +38,8 @@ public class LinkkiPlugin
             {
                 details.Add(new LinkkiLocationDetails
                 {
-                    Location = item.Location,
+                    Longitude = item.Location.Position.Longitude,
+                    Latitude = item.Location.Position.Latitude,
                     Speed = item.Vehicle.Speed,
                     Bearing = item.Vehicle.Bearing,
                     Headsign = item.Vehicle.Headsign
@@ -83,16 +85,48 @@ public class LinkkiPlugin
         {
             lines.AddRange(await iterator.ReadNextAsync());
         }
-
-        Console.WriteLine(lines.ToArray());
         return lines.ToArray();
+    }
+
+    [KernelFunction("get_closest_bus_stops")]
+    [Description(
+        "Gets the closest bus stops to the given location and within the given distance. The default distance is 200 meters.")]
+    [return: Description("Returns the bus stops.")]
+    public async Task<List<BusStopLocationDetails>> GetClosestBusStopAsync(double longitude, double latitude,
+        double distance = 200)
+    {
+        var query = _locationContainer.GetItemLinqQueryable<BusStopLocation>()
+            .Where(s => s.Type == "stop")
+            .Where(s => s.Location.Distance(new Point(longitude, latitude)) < distance)
+            .Select(s => new BusStopLocationDetails
+            {
+                Name = s.Name,
+                Location = s.Location,
+                Distance = s.Location.Distance(new Point(longitude, latitude))
+            });
+        using var iterator = query.ToFeedIterator();
+        var busStops = new List<BusStopLocationDetails>();
+        while (iterator.HasMoreResults)
+        {
+            busStops.AddRange(await iterator.ReadNextAsync());
+        }
+
+        return busStops;
     }
 }
 
 public class LinkkiLocationDetails
 {
-    public GeoJson Location { get; set; }
+    public double Longitude { get; set; }
+    public double Latitude { get; set; }
     public double Speed { get; set; }
     public double Bearing { get; set; }
     public string Headsign { get; set; }
+}
+
+public class BusStopLocationDetails
+{
+    public string Name { get; set; }
+    public Point Location { get; set; }
+    public double Distance { get; set; }
 }

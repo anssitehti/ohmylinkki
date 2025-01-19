@@ -20,6 +20,7 @@ public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAi
                                          Provide real-time information about the current location of buses.
                                         
                                          All your responses should be in Markdown format.
+                                         Bearing needs to be in compass directions.
                                          """;
 
     public async Task<ChatHistory> GetHistoryAsync(string userId)

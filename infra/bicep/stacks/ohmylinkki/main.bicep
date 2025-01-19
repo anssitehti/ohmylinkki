@@ -57,13 +57,15 @@ module cosmosdb '../../modules/cosmos-db/account.bicep' = {
         containers: [
           {
             name: 'locations'
-            partitionKeyPath: '/line/name'
-            defaultTtl: 3600
+            partitionKeyPath: '/type'
+            defaultTtl: -1
+            enableSpatialIndexes: true
           }
           {
             name: 'routes'
             partitionKeyPath: '/lineName'
             defaultTtl: -1
+            enableSpatialIndexes: false
           }
         ]
       }

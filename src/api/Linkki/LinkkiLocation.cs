@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+using Microsoft.Azure.Cosmos.Spatial;
 using Newtonsoft.Json;
 
 namespace Api.Linkki;
@@ -7,9 +7,13 @@ public class LinkkiLocation
 {
     [JsonProperty("id")] public required string Id { get; set; }
     [JsonProperty("timestamp")] public required DateTimeOffset Timestamp { get; set; }
-    [JsonProperty("location")] public required GeoJson Location { get; set; }
+    [JsonProperty("location")] public required Point Location { get; set; }
     [JsonProperty("vehicle")] public required Vehicle Vehicle { get; set; }
     [JsonProperty("line")] public required Line Line { get; set; }
+
+    [JsonProperty("type")] public string Type { get; set; } = "bus";
+    
+    [JsonProperty(PropertyName = "ttl")] public int TimeToLive { get; set; } = 3600;
 }
 
 public class Vehicle
@@ -19,17 +23,6 @@ public class Vehicle
     [JsonProperty("id")] public required string Id { get; set; }
     [JsonProperty("speed")] public float Speed { get; set; }
     [JsonProperty("bearing")] public float Bearing { get; set; }
-}
-
-public class GeoJson
-{
-    [JsonProperty("type")] 
-    [JsonPropertyName("type")] 
-    public required string Type { get; set; }
-    
-    [JsonProperty("coordinates")] 
-    [JsonPropertyName("coordinates")] 
-    public required float[] Coordinates { get; set; }
 }
 
 public class Line

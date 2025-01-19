@@ -34,6 +34,7 @@ module dbContainers 'container.bicep' = [
       accountName: account.name
       databaseName: sqlDatabase.name
       defaultTtl: container.defaultTtl
+      enableSpatialIndexes: container.enableSpatialIndexes
     }
   }
 ]

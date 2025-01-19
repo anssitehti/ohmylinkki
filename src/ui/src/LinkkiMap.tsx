@@ -8,7 +8,7 @@ import linkkiMapIcon from "./assets/linkki-map-icon.svg";
 interface LinkkiPoint {
   id: string,
   line: string;
-  location: { type: string, coordinates: [number, number] };
+  coordinates: [number, number];
   bearing: number;
 }
 
@@ -105,7 +105,7 @@ function LinkkiMap({ userId }: { userId: string }) {
               type: 'Feature',
               geometry: {
                 type: 'Point',
-                coordinates: point.location.coordinates
+                coordinates: point.coordinates
               },
               properties: {
                 id: point.id,
