@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaRobot, FaUserCircle, FaLocationArrow, FaArrowUp } from 'react-icons/fa';
+import { FaRobot, FaUserCircle, FaArrowUp } from 'react-icons/fa';
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { FaLocationCrosshairs } from "react-icons/fa6";
 
 interface Message {
     text: string;
@@ -25,8 +26,8 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             isUser: false
         }
     ]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+    const [isWaitingAi, setWaitingAi] = useState(false);
+    const [isFetchingUserLocation, setIsFetchingUserLocation] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const sendMessage = async (message: string) => {
@@ -37,7 +38,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         };
         setMessages(prev => [...prev, userMessage]);
         setMessage('');
-        setIsLoading(true);
+        setWaitingAi(true);
 
         const chatMessageRequest: ChatMessageRequest = {
             userId: userId,
@@ -45,7 +46,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         }
 
         const response = await fetch(`api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
-        setIsLoading(false);
+        setWaitingAi(false);
         if (!response.ok) {
             toast.error('Failed to send message...');
             return;
@@ -75,24 +76,25 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         }
     }
     const shareLocation = () => {
-        setIsFetchingLocation(true);
+
         if (navigator.geolocation) {
+            setIsFetchingUserLocation(true);
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
-                    setIsFetchingLocation(false);
+                    setIsFetchingUserLocation(false);
                     const { longitude, latitude } = position.coords;
 
                     const locationMessage = `My location is: Longitude: ${longitude}, Latitude: ${latitude}]`;
                     await sendMessage(locationMessage);
                 },
                 (error) => {
+                    setIsFetchingUserLocation(false);
                     console.error("Error fetching location:", error);
                 }
             );
         } else {
             console.error("Geolocation is not supported by this browser.");
         }
-        setIsFetchingLocation(false);
     };
 
     useEffect(() => {
@@ -127,7 +129,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         </div>
                     </div>
                 ))}
-                {isLoading && (
+                {isWaitingAi && (
                     <div className="flex justify-start">
                         <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center mr-3">
                             <FaRobot className="text-white text-sm" />
@@ -135,6 +137,18 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         <div className="p-4 rounded-2xl max-w-[70%] shadow-sm bg-gray-100">
                             <span className="text-gray-500 italic text-sm">
                                 AI Assistant is typing...
+                            </span>
+                        </div>
+                    </div>
+                )}
+                {isFetchingUserLocation && (
+                    <div className="flex justify-end">
+                        <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center mr-3">
+                            <FaUserCircle className="text-white text-sm" />
+                        </div>
+                        <div className="p-4 rounded-2xl max-w-[70%] shadow-sm bg-gray-100">
+                            <span className="text-gray-500 italic text-sm">
+                                Trying to get my location...
                             </span>
                         </div>
                     </div>
@@ -162,11 +176,11 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                     </button>
                     <button
                         onClick={shareLocation}
-                        disabled={isFetchingLocation}
+                        disabled={isFetchingUserLocation}
                         className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600'"
                         title="Share Location"
                     >
-                        <FaLocationArrow className="w-5 h-5" />
+                        <FaLocationCrosshairs className="w-5 h-5" />
                     </button>
                 </div>
             </div>
