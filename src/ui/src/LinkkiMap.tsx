@@ -172,7 +172,7 @@ function LinkkiMap({ userId }: { userId: string }) {
   }, [lastJsonMessage])
 
   return (
-    <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">
+    <div className="h-[600px] md:h-[800px] bg-gray-50 rounded-lg shadow-sm p-6">
       <div id="map" className="w-full h-full rounded-lg" />
     </div>
   )

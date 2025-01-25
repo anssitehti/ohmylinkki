@@ -19,13 +19,17 @@ function App() {
         </h1>
       </header>
 
-      <main className="p-8">
-        <div className="flex gap-8">
+      <main className="p-4 md:p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           {/* Chat container */}
-          <LinkkiAiAssistant userId={userId} />
+          <div className="w-full">
+            <LinkkiAiAssistant userId={userId} />
+          </div>
 
           {/* Map container */}
-          <LinkkiMap userId={userId} />
+          <div className="w-full">
+            <LinkkiMap userId={userId} />
+          </div>
         </div>
       </main>
       <ToastContainer />

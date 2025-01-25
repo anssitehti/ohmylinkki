@@ -101,9 +101,9 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
     return (
-        <div className="w-[600px] h-[800px] flex flex-col bg-white rounded-xl shadow-sm">
+        <div className="h-[500px] md:h-[800px] flex flex-col bg-white rounded-xl shadow-sm overflow-hidden">
             {/* Scrollable messages area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-8 h-full">
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
                         {!msg.isUser && (
@@ -158,30 +158,32 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
 
             {/* Fixed input area */}
             <div className="p-6 bg-gray-50 border-t">
-                <div className="flex gap-4">
+                <div className="flex flex-col lg:flex-row gap-4">
                     <input
                         type="text"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={handleKeyPress}
-                        className="flex-1 w-full p-4 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="w-full p-4 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         placeholder="Type your message..."
                     />
-                    <button
-                        onClick={handleSend}
-                        className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600"
-                        disabled={message.trim() === ''}
-                    >
-                        <FaArrowUp className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={shareLocation}
-                        disabled={isFetchingUserLocation}
-                        className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600'"
-                        title="Share Location"
-                    >
-                        <FaLocationCrosshairs className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-4 w-full lg:w-auto justify-center lg:justify-end">
+                        <button
+                            onClick={handleSend}
+                            className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600"
+                            disabled={message.trim() === ''}
+                        >
+                            <FaArrowUp className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={shareLocation}
+                            disabled={isFetchingUserLocation}
+                            className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600"
+                            title="Share Location"
+                        >
+                            <FaLocationCrosshairs className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
