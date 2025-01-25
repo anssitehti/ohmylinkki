@@ -235,14 +235,18 @@ public class LinkkiLocationImporter : BackgroundService
         try
         {
             await _webPubSubServiceClient.SendToAllAsync(
-                RequestContent.Create(locations.Select(location =>
-                    new
-                    {
-                        id = location.Id,
-                        line = location.Line.Name,
-                        coordinates = location.Location.Position.Coordinates,
-                        bearing = location.Vehicle.Bearing,
-                    })), ContentType.ApplicationJson);
+                RequestContent.Create(new WebSocketEvent()
+                {
+                    Type = "bus",
+                    Data = locations.Select(location =>
+                        new
+                        {
+                            id = location.Id,
+                            line = location.Line.Name,
+                            coordinates = location.Location.Position.Coordinates,
+                            bearing = location.Vehicle.Bearing,
+                        })
+                }), ContentType.ApplicationJson);
         }
         catch (Exception ex)
         {

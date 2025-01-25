@@ -65,6 +65,7 @@ builder.Services.AddWebPubSub(o =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -75,8 +76,9 @@ app.MapHealthChecks("/healthz/startup");
 app.MapHealthChecks("/healthz/readiness");
 app.MapHealthChecks("/healthz/liveness");
 
-app.MapPost("api/chat", async (UserChatMessage message, Kernel kernel, IChatHistoryProvider chatHistoryProvider) =>
+app.MapPost("api/chat", async (UserChatMessage message, Kernel kernel, IChatHistoryProvider chatHistoryProvider, IHttpContextAccessor httpContextAccessor) =>
 {
+    if (httpContextAccessor.HttpContext != null) httpContextAccessor.HttpContext.Items["userId"] = message.UserId;
     var chatHistory = await chatHistoryProvider.GetHistoryAsync(message.UserId);
     chatHistory.AddUserMessage(message.Message);
 

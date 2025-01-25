@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
 import useWebSocket from 'react-use-websocket';
 import linkkiMapIcon from "./assets/linkki-map-icon.svg";
+import { createRoot } from 'react-dom/client';
+import { TbBusStop } from 'react-icons/tb';
 
 
 interface LinkkiPoint {
@@ -12,10 +14,20 @@ interface LinkkiPoint {
   bearing: number;
 }
 
+interface BusStop {
+  id: string;
+  name: string;
+  coordinates: [number, number];
+}
+
+interface WebSocketEvent {
+  type: 'bus' | 'stop';
+  data: LinkkiPoint[] | BusStop;
+}
+
 function LinkkiMap({ userId }: { userId: string }) {
 
   const mapRef = useRef<maplibregl.Map | null>(null);
-
 
   const getSocketUrl = useCallback(async () => {
     const response = await fetch(`api/negotiate?id=${userId}`)
@@ -41,6 +53,15 @@ function LinkkiMap({ userId }: { userId: string }) {
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    map.addControl(
+      new maplibregl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true
+      })
+    );
 
     mapRef.current = map;
 
@@ -94,31 +115,61 @@ function LinkkiMap({ userId }: { userId: string }) {
 
 
   useEffect(() => {
-    const data: LinkkiPoint[] = lastJsonMessage as LinkkiPoint[];
-    requestAnimationFrame(() => {
-      if (mapRef.current) {
-        const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
-        if (source) {
-          source.setData({
-            type: 'FeatureCollection',
-            features: data.map(point => ({
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: point.coordinates
-              },
-              properties: {
-                id: point.id,
-                description: point.line,
-                bearing: point.bearing
-              }
-            }))
-          });
+    const event: WebSocketEvent = lastJsonMessage as WebSocketEvent;
+    if (!event) return;
+    if (event.type === 'bus') {
+      const data: LinkkiPoint[] = event.data as LinkkiPoint[];
+      requestAnimationFrame(() => {
+        if (mapRef.current) {
+          const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
+          if (source) {
+            source.setData({
+              type: 'FeatureCollection',
+              features: data.map(point => ({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: point.coordinates
+                },
+                properties: {
+                  id: point.id,
+                  description: point.line,
+                  bearing: point.bearing
+                }
+              }))
+            });
+          }
         }
-      }
-    });
-  }, [lastJsonMessage])
+      });
+    }
 
+    if (event.type === 'stop') {
+      const data: BusStop = event.data as BusStop;
+      console.log(data);
+      if (mapRef.current) {
+
+        const markerEl = document.createElement('div')
+        const root = createRoot(markerEl)
+        root.render(
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <TbBusStop size={40} color="black" />
+            <div className="label" style={{ marginTop: '5px', textAlign: 'center' }}>{data.name}</div>
+          </div>
+        )
+
+        new maplibregl.Marker({ element: markerEl })
+          .setLngLat(data.coordinates)
+          .addTo(mapRef.current);
+
+        mapRef.current.flyTo({
+          center: data.coordinates,
+          zoom: 16,
+          essential: true
+        });
+      }
+
+    }
+  }, [lastJsonMessage])
 
   return (
     <div className="h-[800px] flex-1 bg-gray-50 rounded-lg shadow-sm p-6">

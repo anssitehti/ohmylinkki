@@ -129,7 +129,7 @@ Follow these steps to deploy solutions to Azure:
 5. Deploy the stack:
 
     ```shell
-    az stack sub create --name ohmylinkki --subscription {subscription} --location {location} --deny-settings-mode none --action-on-unmanage deleteAll --template-file main.bicep --parameters {env}.bicepparam
+    az stack sub create --name ohmylinkki --subscription {subscription} --location {location} --deny-settings-mode none --action-on-unmanage detach-all --template-file main.bicep --parameters {env}.bicepparam
     ```
 
 ## License

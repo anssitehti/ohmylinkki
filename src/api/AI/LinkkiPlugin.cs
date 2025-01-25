@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using Api.Linkki;
+using Azure.Core;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Azure.Cosmos.Spatial;
+using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Container = Microsoft.Azure.Cosmos.Container;
@@ -13,11 +15,18 @@ public class LinkkiPlugin
 {
     private readonly Container _locationContainer;
     private readonly Container _routeContainer;
+    private readonly WebPubSubServiceClient<LinkkiHub> _webPubSubServiceClient;
+    private readonly ILogger<LinkkiPlugin> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public LinkkiPlugin(CosmosClient client, IOptions<LinkkiOptions> options)
+    public LinkkiPlugin(CosmosClient client, IOptions<LinkkiOptions> options,
+        WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient, ILogger<LinkkiPlugin> logger, IHttpContextAccessor httpContextAccessor)
     {
         _locationContainer = client.GetContainer(options.Value.Database, options.Value.LocationContainer);
         _routeContainer = client.GetContainer(options.Value.Database, options.Value.RouteContainer);
+        _webPubSubServiceClient = webPubSubServiceClient;
+        _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     [KernelFunction("get_locations")]
@@ -85,15 +94,16 @@ public class LinkkiPlugin
         {
             lines.AddRange(await iterator.ReadNextAsync());
         }
+
         return lines.ToArray();
     }
 
     [KernelFunction("get_closest_bus_stops")]
     [Description(
-        "Gets the closest bus stops to the given location and within the given distance. The default distance is 200 meters.")]
+        "Gets the closest bus stops to the given location and within the given distance. The default distance is 300 meters.")]
     [return: Description("Returns the bus stops.")]
     public async Task<List<BusStopLocationDetails>> GetClosestBusStopAsync(double longitude, double latitude,
-        double distance = 200)
+        double distance = 300)
     {
         var query = _locationContainer.GetItemLinqQueryable<BusStopLocation>()
             .Where(s => s.Type == "stop")
@@ -113,6 +123,30 @@ public class LinkkiPlugin
 
         return busStops;
     }
+
+    [KernelFunction("show_bus_stop_location_on_map")]
+    [Description("Shows the bus stop location on map. Bus stop name, longitude, and latitude are required.")]
+    public async Task ShowBusStopLocationAsync(string? name, double longitude, double latitude)
+    {
+        try
+        {
+            var userId = _httpContextAccessor.HttpContext?.Items["userId"] as string;
+            await _webPubSubServiceClient.SendToUserAsync(userId,
+                RequestContent.Create(new WebSocketEvent()
+                {
+                    Type = "stop",
+                    Data = new
+                    {
+                        name = name ?? "unknown",
+                        coordinates = new[] { longitude, latitude }
+                    }
+                }), ContentType.ApplicationJson);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish locations to WebPubSub Hub.");
+        }
+    }
 }
 
 public class LinkkiLocationDetails
@@ -126,7 +160,9 @@ public class LinkkiLocationDetails
 
 public class BusStopLocationDetails
 {
-    public string Name { get; set; }
-    public Point Location { get; set; }
-    public double Distance { get; set; }
+    public required string Name { get; set; }
+    public required Point Location { set; get; }
+    public double Longitude => Location.Position.Longitude;
+    public double Latitude => Location.Position.Latitude;
+    public required double Distance { get; set; }
 }
