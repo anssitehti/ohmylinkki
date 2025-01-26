@@ -76,3 +76,7 @@ appsettings.Development.json
 
 # Bicep
 *.bicepparam
+
+# Reference data
+reference-data/*.json
+reference-data/*.txt

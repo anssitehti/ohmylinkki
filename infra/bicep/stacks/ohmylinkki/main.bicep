@@ -53,7 +53,7 @@ module cosmosdb '../../modules/cosmos-db/account.bicep' = {
     databases: [
       {
         name: 'linkki'
-        throughput: 400
+        throughput: 1000
         containers: [
           {
             name: 'locations'

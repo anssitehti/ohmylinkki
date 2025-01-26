@@ -2,6 +2,7 @@ using Azure.Core;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Spatial;
 using Microsoft.Azure.WebPubSub.AspNetCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -15,96 +16,14 @@ public class LinkkiLocationImporter : BackgroundService
     private readonly ILogger<LinkkiLocationImporter> _logger;
     private readonly RestClient _client;
     private readonly LinkkiOptions _options;
-    private readonly Container _container;
+    private readonly Container _locationContainer;
     private readonly WebPubSubServiceClient<LinkkiHub> _webPubSubServiceClient;
-
-    private static readonly Dictionary<string, string> RouteToLine = new()
-    {
-        { "3", "Uuraisten Liikenne" },
-        { "12", "Matka Mäkelä" },
-        { "13", "Matka Mäkelä" },
-        { "14", "Matka Mäkelä" },
-        { "15", "Matka Mäkelä" },
-        { "16", "Matka Mäkelä" },
-        { "102", "Peuran Liikenne" },
-        { "118", "Pohjolan Matka" },
-        { "411", "Koivuranta" },
-        { "412", "Koivuranta" },
-        { "901", "S1" },
-        { "902", "S2" },
-        { "903", "S3" },
-        { "904", "S4" },
-        { "905", "S5" },
-        { "906", "S6" },
-        { "6140", "140" },
-        { "6141", "141" },
-        { "6671", "Koiviston Auto" },
-        { "6701", "Kouluvuoro" },
-        { "6702", "Kouluvuoro" },
-        { "6711", "Kouluvuoro" },
-        { "6712", "Kouluvuoro" },
-        { "6832", "Kouluvuoro" },
-        { "6901", "kouluv Äki" },
-        { "6902", "Kouluv Äki" },
-        { "6908", "Mämmensalmi" },
-        { "6911", "Kouluvuoro" },
-        { "6912", "Kouluvuoro" },
-        { "6913", "Kouluvuoro" },
-        { "9017", "1M" },
-        { "9027", "2V" },
-        { "9028", "S2M" },
-        { "9031", "3" },
-        { "9033", "3K" },
-        { "9043", "4K" },
-        { "9051", "5" },
-        { "9053", "5K" },
-        { "9071", "7" },
-        { "9081", "8" },
-        { "9091", "9" },
-        { "9092", "9K" },
-        { "9121", "12" },
-        { "9123", "12K" },
-        { "9131", "13" },
-        { "9141", "14" },
-        { "9143", "14M" },
-        { "9151", "15" },
-        { "9153", "15K" },
-        { "9161", "16" },
-        { "9163", "16M" },
-        { "9201", "20" },
-        { "9211", "21" },
-        { "9221", "22" },
-        { "9223", "22M" },
-        { "9227", "22" },
-        { "9231", "23" },
-        { "9261", "26" },
-        { "9311", "31" },
-        { "9321", "32" },
-        { "9341", "34" },
-        { "9342", "34" },
-        { "9361", "36" },
-        { "9372", "37" },
-        { "9381", "38" },
-        { "9383", "38K" },
-        { "9385", "38R" },
-        { "9391", "39" },
-        { "9401", "40" },
-        { "9411", "41" },
-        { "9414", "41" },
-        { "9423", "42" },
-        { "9431", "143" },
-        { "9451", "45" },
-        { "9461", "46" },
-        { "9601", "TARVAALA" },
-        { "9603", "NOJOSNIEMI" },
-        { "9604", "41" },
-        { "9801", "100" },
-        { "9802", "100" }
-    };
+    private readonly Container _routeContainer;
+    private readonly IMemoryCache _memoryCache;
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
         CosmosClient cosmosClient,
-        WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient)
+        WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient, IMemoryCache memoryCache)
     {
         _logger = logger;
         _options = linkkiOptions.Value;
@@ -113,8 +32,11 @@ public class LinkkiLocationImporter : BackgroundService
             Authenticator = new HttpBasicAuthenticator(_options.WalttiUsername, _options.WalttiPassword)
         };
         _client = new RestClient(restClientOptions);
-        _container = cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.LocationContainer);
+        _locationContainer =
+            cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.LocationContainer);
+        _routeContainer = cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.RouteContainer);
         _webPubSubServiceClient = webPubSubServiceClient;
+        _memoryCache = memoryCache;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -154,7 +76,8 @@ public class LinkkiLocationImporter : BackgroundService
             foreach (var feedEntity in feedMessage.Entity)
             {
                 var id = feedEntity.Vehicle.Vehicle.Id;
-                if (!RouteToLine.TryGetValue(feedEntity.Vehicle.Trip.RouteId, out var line))
+                var lineName = await GetLineName(feedEntity.Vehicle.Trip.RouteId);
+                if (lineName == null)
                 {
                     _logger.LogWarning("Unknown route id {RouteId} {Headsign}", feedEntity.Vehicle.Trip.RouteId,
                         feedEntity.Vehicle.Vehicle.Label);
@@ -166,12 +89,12 @@ public class LinkkiLocationImporter : BackgroundService
                     if (DateTimeOffset.FromUnixTimeSeconds((long)feedEntity.Vehicle.Timestamp) >
                         existingLocation.Timestamp)
                     {
-                        locations[id] = MapLinkkiLocation(feedEntity, line);
+                        locations[id] = MapLinkkiLocation(feedEntity, lineName);
                     }
                 }
                 else
                 {
-                    locations.Add(id, MapLinkkiLocation(feedEntity, line));
+                    locations.Add(id, MapLinkkiLocation(feedEntity, lineName));
                 }
             }
         }
@@ -182,7 +105,18 @@ public class LinkkiLocationImporter : BackgroundService
         await PublishToAllAsync(locations.Values, cancellationToken);
     }
 
-    private LinkkiLocation MapLinkkiLocation(FeedEntity feedEntity, string line)
+    private async Task<string?> GetLineName(string routeId)
+    {
+        return await _memoryCache.GetOrCreateAsync(routeId, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
+            var lineName = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
+                .Where(x => x.Id == routeId).Select(x => x.LineName).FirstOrDefault();
+            return Task.FromResult(lineName);
+        });
+    }
+
+    private LinkkiLocation MapLinkkiLocation(FeedEntity feedEntity, string lineName)
     {
         var location = new LinkkiLocation()
         {
@@ -191,9 +125,10 @@ public class LinkkiLocationImporter : BackgroundService
             Location = new Point(feedEntity.Vehicle.Position.Longitude, feedEntity.Vehicle.Position.Latitude),
             Line = new Line
             {
-                Name = line,
+                Name = lineName,
                 RouteId = feedEntity.Vehicle.Trip.RouteId,
-                Direction = feedEntity.Vehicle.Trip.DirectionId
+                Direction = feedEntity.Vehicle.Trip.DirectionId,
+                TripId = feedEntity.Vehicle.Trip.TripId
             },
             Vehicle = new Vehicle
             {
@@ -216,7 +151,7 @@ public class LinkkiLocationImporter : BackgroundService
             {
                 try
                 {
-                    await _container.UpsertItemAsync(location, new PartitionKey(location.Type),
+                    await _locationContainer.UpsertItemAsync(location, new PartitionKey(location.Type),
                         cancellationToken: cancellationToken);
                 }
                 catch (CosmosException ex)

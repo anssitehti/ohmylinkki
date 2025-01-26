@@ -145,7 +145,6 @@ function LinkkiMap({ userId }: { userId: string }) {
 
     if (event.type === 'stop') {
       const data: BusStop = event.data as BusStop;
-      console.log(data);
       if (mapRef.current) {
 
         const markerEl = document.createElement('div')
