@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Api.AI;
@@ -7,18 +9,29 @@ public interface IChatHistoryProvider
     Task<ChatHistory> GetHistoryAsync(string userId);
 }
 
-public class MemoryChatHistoryProvider : IChatHistoryProvider
+public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAiOptions> options) : IChatHistoryProvider
 {
-    private const string SystemMessage = "You are a helpful assistant that helps users with Linkki bus lines in Jyväskylä.";
-    
-    private readonly Dictionary<string, ChatHistory> _history = new ();
-    public Task<ChatHistory> GetHistoryAsync(string userId)
+    private const string SystemMessage = """
+                                         You are a friendly and knowledgeable assistant dedicated to helping users with Linkki bus lines in Jyväskylä. 
+                                         
+                                         You can:
+                                         
+                                         Answer questions about bus lines and locations.
+                                         Provide real-time information about the current location of buses.
+                                        
+                                         All your responses should be in Markdown format.
+                                         Keep answers short and to the point.
+                                         Bearing needs to be in compass directions.
+                                         """;
+
+    public async Task<ChatHistory> GetHistoryAsync(string userId)
     {
-        if (_history.TryGetValue(userId, out var value)) return Task.FromResult(value);
-        
-        var chatHistory = new ChatHistory();
-        chatHistory.AddSystemMessage(SystemMessage);
-        _history.Add(userId, chatHistory);
-        return Task.FromResult(chatHistory);
+        var chatHistory = await memoryCache.GetOrCreateAsync(userId, entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes);
+            return Task.FromResult(new ChatHistory(SystemMessage));
+        });
+
+        return chatHistory!;
     }
 }

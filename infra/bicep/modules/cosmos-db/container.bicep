@@ -13,6 +13,18 @@ param partitionKeyPath string
 @description('The default time to live.')
 param defaultTtl int
 
+@description('Enable spatial indexes.')
+param enableSpatialIndexes bool
+
+var spatialIndexes = [
+  {
+    path: '/location/*'
+    types: [
+      'Point'
+    ]
+  }
+]
+
 resource account 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
   name: accountName
 
@@ -34,6 +46,9 @@ resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/container
         kind: 'Hash'
       }
       defaultTtl: defaultTtl
+      indexingPolicy: {
+        spatialIndexes: enableSpatialIndexes ? spatialIndexes : null
+      }
     }
   }
 }

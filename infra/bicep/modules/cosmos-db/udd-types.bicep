@@ -20,4 +20,7 @@ type Container = {
 
   @description('Default time to live.')
   defaultTtl: int
+
+  @description('Enable spatial indexes.')
+  enableSpatialIndexes: bool
 }
