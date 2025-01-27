@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using Api.Linkki;
 using Azure.Core;
 using Microsoft.Azure.Cosmos;
@@ -8,6 +9,10 @@ using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Container = Microsoft.Azure.Cosmos.Container;
+
+// ReSharper disable UnusedMember.Local
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+
 
 namespace Api.AI;
 
@@ -33,52 +38,54 @@ public class LinkkiPlugin
     [KernelFunction("get_location")]
     [Description("Gets the current location of the bus on the given line.")]
     [return:
-        Description("Returns the locations of bus that are currently on the given line. Each bus are represented by their own trip. Trip and line are unique identifiers.")]
-    private async Task<List<LinkkiLocationDetails>> GetLocationAsync(string line)
+        Description(
+            "Returns the locations of buses that are currently on the given line. Each bus is represented by its own trip. Trip and line are unique identifiers.")]
+    private async Task<List<LinkkiLocationDetails>> GetLocationAsync(string lineName)
     {
         var query = _locationContainer.GetItemLinqQueryable<LinkkiLocation>()
-            .Where(l => l.Line.Name.ToLower() == line.ToLower().Trim() && l.Type == "bus");
+            .Where(l => l.Line.Name.ToLower() == lineName.ToLower().Trim() && l.Type == "bus");
 
         var details = new List<LinkkiLocationDetails>();
         using var iterator = query.ToFeedIterator();
         while (iterator.HasMoreResults)
         {
-            foreach (var item in await iterator.ReadNextAsync())
+            details.AddRange((await iterator.ReadNextAsync()).Select(item => new LinkkiLocationDetails
             {
-                details.Add(new LinkkiLocationDetails
-                {
-                    Longitude = item.Location.Position.Longitude,
-                    Latitude = item.Location.Position.Latitude,
-                    Speed = item.Vehicle.Speed,
-                    Bearing = item.Vehicle.Bearing,
-                    Headsign = item.Vehicle.Headsign,
-                    TripId = item.Line.TripId,
-                    Direction = item.Line.Direction,
-                    LineName = item.Line.Name
-                });
-            }
+                Id = item.Id,
+                Longitude = item.Location.Position.Longitude,
+                Latitude = item.Location.Position.Latitude,
+                Speed = item.Vehicle.Speed,
+                Bearing = item.Vehicle.Bearing,
+                Headsign = item.Vehicle.Headsign,
+                TripId = item.Line.TripId,
+                Direction = item.Line.Direction,
+                LineName = item.Line.Name,
+                LicensePlate = item.Vehicle.LicensePlate
+            }));
         }
 
         return details;
     }
-    
-    [KernelFunction("get_bus_stops_by_line_and_trip")]
-    [Description("Gets the bus stops where the bus stops for the given line and trip. To use this you need to first get location of the bus using the get_location.")]
-    [return: Description("Returns the bus stops.")]
-    private List<BusStopDetails> GetBusStopsByLineAndTrip(string line, string tripId)
+
+    [KernelFunction("get_bus_stop_names")]
+    [Description(
+        "Gets the bus stops names for the given line and tripId.")]
+    [return: Description("Returns the bus stops names.")]
+    private List<string>? GetBusStops(string lineName, string tripId)
     {
         var route = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
-            .Where(l => l.LineName.ToLower().Trim() == line.ToLower().Trim())
-            .FirstOrDefault();
-        
-        var busStopDetails = route?.BusStops
-            .Where(busStop => busStop.TripId == tripId)
-            .Select(busStop => busStop.BusStopDetails)
+            .Where(l => l.LineName.ToLower().Trim() == lineName.ToLower().Trim())
             .FirstOrDefault();
 
-        return busStopDetails ?? [];
+      return route?.BusStops
+            .Where(busStop => busStop.TripId == tripId)
+            .SelectMany(busStop => busStop.BusStopDetails)
+            .Select(x => x.Name).ToList();
+      
     }
     
+    
+
     [KernelFunction("get_available_lines")]
     [Description("Gets the available lines.")]
     [return: Description("Returns the available lines.")]
@@ -123,9 +130,14 @@ public class LinkkiPlugin
     }
 
     [KernelFunction("show_bus_stop_location_on_map")]
-    [Description("Shows the bus stop location on map. Bus stop name, longitude, and latitude are required.")]
-    private async Task ShowBusStopLocationOnMapAsync(string? name, double longitude, double latitude)
+    [Description("Shows the bus stop location on the map. Bus stop name, longitude, and latitude are required.")]
+    private async Task ShowBusStopLocationOnMapAsync(string? busStopName, double longitude, double latitude)
     {
+        if (longitude == 0 || latitude == 0)
+        {
+            return;
+        }
+
         try
         {
             var userId = _httpContextAccessor.HttpContext?.Items["userId"] as string;
@@ -135,7 +147,7 @@ public class LinkkiPlugin
                     Type = "stop",
                     Data = new
                     {
-                        name = name ?? "unknown",
+                        name = busStopName ?? "unknown",
                         coordinates = new[] { longitude, latitude }
                     }
                 }), ContentType.ApplicationJson);
@@ -145,25 +157,71 @@ public class LinkkiPlugin
             _logger.LogError(ex, "Failed to publish locations to WebPubSub Hub.");
         }
     }
+
+    [KernelFunction("get_bus_stop_details_by_name")]
+    [Description("Gets the details of a bus stop by its name. Also accepts user location to calculate the distance.")]
+    [return: Description("Returns the details of the bus stop that contains name and arrival time of the bus.")]
+    private async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(string busStopName, double longitude,
+        double latitude)
+    {
+        var query = _locationContainer.GetItemLinqQueryable<BusStopLocation>()
+            .Where(s => s.Type == "stop")
+            .Where(s => s.Name.ToLower() == busStopName.ToLower().Trim())
+            .Select(s => new BusStopLocationDetails
+            {
+                Name = s.Name,
+                Location = s.Location,
+                Distance = (longitude != 0 && latitude != 0)
+                    ? s.Location.Distance(new Point(longitude, latitude))
+                    : 0
+            });
+
+        using var iterator = query.ToFeedIterator();
+        var busStop = await iterator.ReadNextAsync();
+        return busStop.FirstOrDefault();
+    }
+    
+    [KernelFunction("get_bus_arrival_time")]
+    [Description(
+        "Gets the time when the bus will be at the specified bus stop for the given line and tripId. Use only this function to get the arrival time.")]
+    [return: Description("Returns the arrival time of the next bus at the specified bus stop.")]
+    private string? GetNextBusArrivalTimeAsync(string lineName, string tripId, string busStopName)
+    {
+        var route = _routeContainer
+            .GetItemLinqQueryable<LinkkiRoute>()
+            .Where(l => l.LineName.ToLower().Trim() == lineName.ToLower().Trim())
+            .FirstOrDefault();
+        
+        var nextArrivalTIme = route?.BusStops.Where(stop =>
+                string.Equals(stop.TripId, tripId.Trim(), StringComparison.CurrentCultureIgnoreCase))
+            .SelectMany(stop => stop.BusStopDetails)
+            .Where(sd => string.Equals(sd.Name, busStopName.Trim(), StringComparison.CurrentCultureIgnoreCase))
+            .Select(sd => sd.ArrivalTime)
+            .FirstOrDefault();
+        
+        return nextArrivalTIme;
+    }
 }
 
 public class LinkkiLocationDetails
 {
-    public double Longitude { get; set; }
-    public double Latitude { get; set; }
-    public double Speed { get; set; }
-    public double Bearing { get; set; }
-    public string Headsign { get; set; }
-    public string TripId { get; set; }
-    public uint Direction { get; set; }
-    public string LineName { get; set; }
+    [JsonPropertyName("longitude")] public double Longitude { get; set; }
+    [JsonPropertyName("latitude")] public double Latitude { get; set; }
+    [JsonPropertyName("speed")] public double Speed { get; set; }
+    [JsonPropertyName("bearing")] public double Bearing { get; set; }
+    [JsonPropertyName("headsign")] public required string Headsign { get; set; }
+    [JsonPropertyName("tripId")] public required string TripId { get; set; }
+    [JsonPropertyName("direction")] public uint Direction { get; set; }
+    [JsonPropertyName("lineName")] public required string LineName { get; set; }
+    [JsonPropertyName("licensePlate")] public required string LicensePlate { get; set; }
+    [JsonPropertyName("id")]  public required string Id { get; set; }
 }
 
 public class BusStopLocationDetails
 {
-    public required string Name { get; set; }
-    public required Point Location { set; get; }
-    public double Longitude => Location.Position.Longitude;
-    public double Latitude => Location.Position.Latitude;
-    public required double Distance { get; set; }
+    [JsonPropertyName("name")] public required string Name { get; set; }
+    [JsonPropertyName("location")] public required Point Location { init; get; }
+    [JsonPropertyName("longitude")] public double Longitude => Location.Position.Longitude;
+    [JsonPropertyName("latitude")] public double Latitude => Location.Position.Latitude;
+    [JsonPropertyName("distance")] public required double Distance { get; set; }
 }

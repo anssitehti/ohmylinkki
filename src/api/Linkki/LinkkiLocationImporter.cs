@@ -102,7 +102,7 @@ public class LinkkiLocationImporter : BackgroundService
 
         await UpsertLocationsAsync(locations.Values, cancellationToken);
 
-        await PublishToAllAsync(locations.Values, cancellationToken);
+        await PublishToAllAsync(locations.Values);
     }
 
     private async Task<string?> GetLineName(string routeId)
@@ -165,7 +165,7 @@ public class LinkkiLocationImporter : BackgroundService
         await Task.WhenAll(upsertItemTasks);
     }
 
-    private async Task PublishToAllAsync(IEnumerable<LinkkiLocation> locations, CancellationToken cancellationToken)
+    private async Task PublishToAllAsync(IEnumerable<LinkkiLocation> locations)
     {
         try
         {

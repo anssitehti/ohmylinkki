@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api;
+namespace Api.AI;
 
 public class OpenAiOptions
 {
