@@ -150,7 +150,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                                 : 'bg-gray-100'
                                 }`}
                         >
-                            <div className="justify-left"><Markdown className="text-left" remarkPlugins={[remarkGfm]}>{msg.text}</Markdown></div>
+                            <div className="justify-left text-left"><Markdown remarkPlugins={[remarkGfm]}>{msg.text}</Markdown></div>
                             <div className={`text-xs mt-1 ${msg.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
                                 {msg.timestamp.toLocaleTimeString()}
                             </div>
