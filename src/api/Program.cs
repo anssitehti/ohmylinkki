@@ -132,11 +132,11 @@ app.MapGet("api/negotiate", ([FromQuery] string? id, WebPubSubServiceClient<Link
     });
 });
 
-app.MapPost("api/clear-chat-history", async ([FromQuery] string id, IChatHistoryProvider chatHistoryProvider) =>
+app.MapPost("api/clear-chat-history", async (ClearChatHistory clearChatHistory, IChatHistoryProvider chatHistoryProvider) =>
 {
-    await chatHistoryProvider.ClearHistoryAsync(id);
+    await chatHistoryProvider.ClearHistoryAsync(clearChatHistory.UserId);
     return Results.Ok();
-});
+}).AddEndpointFilter<ValidationFilter<ClearChatHistory>>();
 
 
 app.MapGet("api/test-linkki-plugin",
