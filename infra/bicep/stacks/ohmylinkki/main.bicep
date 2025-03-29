@@ -83,6 +83,16 @@ module log '../../modules/monitoring/log-analytics-workspace.bicep' = {
   scope: rg
 }
 
+module appInsights '../../modules/monitoring/application-insights.bicep' = {
+  name: 'appInsights'
+  params: {
+    name: 'appi-${solution}-${env}'
+    location: location
+    logAnalyticsWorkspaceId: log.outputs.id
+  }
+  scope: rg
+}
+
 module cae '../../modules/container-app/cae.bicep' = {
   name: 'cae'
   params: {
