@@ -22,6 +22,7 @@
         <PackageReference Include="Microsoft.Azure.WebPubSub.AspNetCore" Version="1.4.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.3" />
         <PackageReference Include="Microsoft.SemanticKernel" Version="1.44.0" />
+        <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.44.0-preview" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="RestSharp" Version="112.1.0" />
     </ItemGroup>

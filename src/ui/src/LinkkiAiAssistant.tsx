@@ -16,12 +16,15 @@ interface ChatMessageRequest {
     message: string;
 }
 
+const agentWelcomeMessage = "🤖 AI Agent activated! I'm your intelligent Linkki assistant. What can I do for you today?";
+
+const chatApiEndpoint = 'api/chat-agent';
 
 function LinkkiAiAssistant({ userId }: { userId: string }) {
     const [message, setMessage] = useState('')
     const [messages, setMessages] = useState<Message[]>([
         {
-            text: 'Hello, how can I help you?',
+            text: agentWelcomeMessage,
             timestamp: new Date(),
             isUser: false
         }
@@ -46,7 +49,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
             message: message.trim()
         }
 
-        const response = await fetch(`api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
+        const response = await fetch(chatApiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chatMessageRequest) });
         setWaitingAi(false);
         if (!response.ok) {
             toast.error('Failed to send message...');
@@ -113,7 +116,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
 
             // Reset messages to initial state
             setMessages([{
-                text: 'Hello, how can I help you?',
+                text: agentWelcomeMessage,
                 timestamp: new Date(),
                 isUser: false
             }]);

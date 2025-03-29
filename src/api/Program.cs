@@ -10,9 +10,11 @@ using Microsoft.Azure.WebPubSub.AspNetCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +24,7 @@ builder.Services.AddSingleton(azureCredential);
 builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
 {
     options.Credential = azureCredential;
-    options.SamplingRatio = 0.1F;   
+    options.SamplingRatio = 0.1F;
     options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 });
 builder.Services.AddOpenTelemetry().WithMetrics(meters => meters.AddMeter("Microsoft.SemanticKernel*"));
@@ -35,14 +37,7 @@ builder.Services.AddWebPubSub(o =>
     .AddWebPubSubServiceClient<LinkkiHub>();
 
 // Semantic Kernel
-builder.Services.AddHttpClient("OpenAI", client => client.Timeout = TimeSpan.FromSeconds(5));
-builder.Services.AddSingleton<IChatCompletionService>(sp =>
-{
-    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
-    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient("OpenAI");
-    return new AzureOpenAIChatCompletionService(options.DeploymentName, options.Endpoint, azureCredential,
-        options.DeploymentName, httpClient);
-});
+
 builder.Services.AddSingleton<LinkkiPlugin>();
 builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>();
 builder.Services.AddTransient((sp) =>
@@ -50,6 +45,33 @@ builder.Services.AddTransient((sp) =>
     KernelPluginCollection pluginCollection = [];
     pluginCollection.AddFromObject(sp.GetRequiredService<LinkkiPlugin>());
     return new Kernel(sp, pluginCollection);
+});
+
+builder.Services.AddSingleton<IChatCompletionService>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
+    return new AzureOpenAIChatCompletionService(options.DeploymentName, options.Endpoint, azureCredential,
+        options.DeploymentName);
+});
+
+// The AI Agent
+builder.Services.AddTransient(sp =>
+{
+    var kernel = sp.GetRequiredService<Kernel>();
+    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
+    ChatCompletionAgent agent =
+        new()
+        {
+            Name = "LinkkiAgent",
+            Instructions = AgentInstructions.LinkkiAgentInstructions,
+            Kernel = kernel,
+            Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings()
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+                Temperature = options.Temperature
+            })
+        };
+    return agent;
 });
 
 builder.Services.AddMemoryCache();
@@ -144,6 +166,39 @@ app.MapPost("api/clear-chat-history",
         return Results.Ok();
     }).AddEndpointFilter<ValidationFilter<ClearChatHistory>>();
 
+
+app.MapPost("api/chat-agent",
+    async (UserChatMessage userMessage, ChatCompletionAgent agent, IChatHistoryProvider chatHistoryProvider,
+        IHttpContextAccessor httpContextAccessor, IOptions<OpenAiOptions> openAiOptions) =>
+    {
+        if (httpContextAccessor.HttpContext != null)
+        {
+            httpContextAccessor.HttpContext.Items["userId"] = userMessage.UserId;
+        }
+
+        var chatHistory = await chatHistoryProvider.GetAgentHistoryAsync(userMessage.UserId);
+
+        var thread = new ChatHistoryAgentThread(chatHistory);
+
+        try
+        {
+            var fullMessage = "";
+            await foreach (ChatMessageContent response in agent.InvokeAsync(
+                               new ChatMessageContent(AuthorRole.User, userMessage.Message), thread))
+            {
+                fullMessage += response.Content;
+            }
+
+            return Results.Ok(new
+            {
+                message = fullMessage,
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            return Results.StatusCode(408);
+        }
+    }).AddEndpointFilter<ValidationFilter<UserChatMessage>>();
 
 app.MapGet("api/test-linkki-plugin",
     ([FromQuery] string busStopName, [FromQuery] string lineName, LinkkiPlugin plugin) =>
