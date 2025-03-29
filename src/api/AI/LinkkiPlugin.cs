@@ -36,14 +36,16 @@ public class LinkkiPlugin
     }
 
     [KernelFunction("get_location")]
-    [Description("Gets the current location of the bus on the given line.")]
+    [Description("Gets the current location and status of buses operating on the specified line number.")]
     [return:
         Description(
-            "Returns the locations of buses that are currently on the given line. Each bus is represented by its own trip. Trip and line are unique identifiers.")]
-    private async Task<List<LinkkiLocationDetails>> GetLocationAsync(string lineName)
+            "Returns detailed information about buses currently operating on the specified line, including position, speed, direction, and destination.")]
+    private async Task<List<LinkkiLocationDetails>> GetLocationAsync(
+        [Description("The bus line number or name to search for.")]
+        string lineName)
     {
         var query = _locationContainer.GetItemLinqQueryable<LinkkiLocation>()
-            .Where(l => l.Line.Name.ToLower() == lineName.ToLower().Trim() && l.Type == "bus");
+            .Where(l => l.Type == "bus" && l.Line.Name.ToLower() == lineName.ToLower().Trim());
 
         var details = new List<LinkkiLocationDetails>();
         using var iterator = query.ToFeedIterator();
@@ -65,42 +67,6 @@ public class LinkkiPlugin
         }
 
         return details;
-    }
-
-    [KernelFunction("get_bus_stop_names")]
-    [Description(
-        "Gets the bus stops names for the given line and tripId.")]
-    [return: Description("Returns the bus stops names.")]
-    private List<string>? GetBusStops(string lineName, string tripId)
-    {
-        var route = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
-            .Where(l => l.LineName.ToLower().Trim() == lineName.ToLower().Trim())
-            .FirstOrDefault();
-
-      return route?.BusStops
-            .Where(busStop => busStop.TripId == tripId)
-            .SelectMany(busStop => busStop.BusStopDetails)
-            .Select(x => x.Name).ToList();
-      
-    }
-    
-    
-
-    [KernelFunction("get_available_lines")]
-    [Description("Gets the available lines.")]
-    [return: Description("Returns the available lines.")]
-    private async Task<string[]> GetAvailableLines()
-    {
-        var query = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
-            .Select(l => l.LineName);
-        using var iterator = query.ToFeedIterator();
-        var lines = new List<string>();
-        while (iterator.HasMoreResults)
-        {
-            lines.AddRange(await iterator.ReadNextAsync());
-        }
-
-        return lines.ToArray();
     }
 
     [KernelFunction("get_closest_bus_stops")]
@@ -128,6 +94,7 @@ public class LinkkiPlugin
 
         return busStops;
     }
+
 
     [KernelFunction("show_bus_stop_location_on_map")]
     [Description("Shows the bus stop location on the map. Bus stop name, longitude, and latitude are required.")]
@@ -158,11 +125,54 @@ public class LinkkiPlugin
         }
     }
 
+    [KernelFunction("get_bus_stop_names")]
+    [Description(
+        "Gets the bus stops names for the given line and tripId.")]
+    [return: Description("Returns the bus stops names.")]
+    private List<string>? GetBusStops(string lineName, string tripId)
+    {
+        var route = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
+            .Where(l => l.LineName.ToLower().Trim() == lineName.ToLower().Trim())
+            .FirstOrDefault();
+
+        return route?.BusStops
+            .Where(busStop => busStop.TripId == tripId)
+            .SelectMany(busStop => busStop.BusStopDetails)
+            .Select(x => x.Name).ToList();
+    }
+
+
+    [KernelFunction("get_available_lines")]
+    [Description("Gets the available lines.")]
+    [return: Description("Returns the available lines.")]
+    private async Task<string[]> GetAvailableLines()
+    {
+        var query = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
+            .Select(l => l.LineName);
+        using var iterator = query.ToFeedIterator();
+        var lines = new List<string>();
+        while (iterator.HasMoreResults)
+        {
+            lines.AddRange(await iterator.ReadNextAsync());
+        }
+
+        return lines.ToArray();
+    }
+
+
     [KernelFunction("get_bus_stop_details_by_name")]
-    [Description("Gets the details of a bus stop by its name. Also accepts user location to calculate the distance.")]
-    [return: Description("Returns the details of the bus stop that contains name and arrival time of the bus.")]
-    private async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(string busStopName, double longitude,
-        double latitude)
+    [Description(
+        "Gets detailed information about a bus stop including its location, nearby bus lines, and upcoming arrivals.")]
+    [return:
+        Description(
+            "Returns complete details about the bus stop including coordinates, distance from user, and which bus lines service this stop.")]
+    private async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(
+        [Description("The name of the bus stop to search for")]
+        string busStopName,
+        [Description("User's current longitude (0 if unavailable)")]
+        double longitude = 0,
+        [Description("User's current latitude (0 if unavailable)")]
+        double latitude = 0)
     {
         var query = _locationContainer.GetItemLinqQueryable<BusStopLocation>()
             .Where(s => s.Type == "stop")
@@ -180,26 +190,79 @@ public class LinkkiPlugin
         var busStop = await iterator.ReadNextAsync();
         return busStop.FirstOrDefault();
     }
-    
-    [KernelFunction("get_bus_arrival_time")]
-    [Description(
-        "Gets the time when the bus will be at the specified bus stop for the given line and tripId. Use only this function to get the arrival time.")]
-    [return: Description("Returns the arrival time of the next bus at the specified bus stop.")]
-    private string? GetNextBusArrivalTimeAsync(string lineName, string tripId, string busStopName)
+
+    [KernelFunction("get_bus_arrival_times")]
+    [Description("Gets upcoming arrival times for buses at a specific stop and line name.")]
+    [return:
+        Description(
+            "Returns a list of upcoming bus arrivals with line name, trip, stop name, arrival time and minutes until arrival.")]
+    public List<BusArrival> GetBusArrivalTimes(
+        [Description("Name of the bus stop")] string busStopName,
+        [Description("Line name")] string lineName)
     {
+        var arrivals = new List<BusArrival>();
         var route = _routeContainer
             .GetItemLinqQueryable<LinkkiRoute>()
             .Where(l => l.LineName.ToLower().Trim() == lineName.ToLower().Trim())
             .FirstOrDefault();
-        
-        var nextArrivalTIme = route?.BusStops.Where(stop =>
-                string.Equals(stop.TripId, tripId.Trim(), StringComparison.CurrentCultureIgnoreCase))
-            .SelectMany(stop => stop.BusStopDetails)
-            .Where(sd => string.Equals(sd.Name, busStopName.Trim(), StringComparison.CurrentCultureIgnoreCase))
-            .Select(sd => sd.ArrivalTime)
-            .FirstOrDefault();
-        
-        return nextArrivalTIme;
+        if (route == null)
+        {
+            return arrivals;
+        }
+
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
+            TimeZoneInfo.FindSystemTimeZoneById("Europe/Helsinki"));
+        var nowTime = now.TimeOfDay;
+
+        foreach (var busStop in route.BusStops)
+        {
+            if (!IsValidTripForCurrentDate(now, busStop.TripId))
+            {
+                continue;
+            }
+
+            var matchingStops = busStop.BusStopDetails
+                .Where(sd => sd.Name.Equals(busStopName.Trim(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            foreach (var stop in matchingStops.Where(stop => !string.IsNullOrEmpty(stop.ArrivalTime)))
+            {
+                try
+                {
+                    var arrivalTime = TimeSpan.Parse(stop.ArrivalTime);
+
+                    if (arrivalTime > (nowTime - TimeSpan.FromMinutes(2)) &&
+                        arrivalTime < (nowTime + TimeSpan.FromHours(2)))
+                    {
+                        var minutesUntil = (int)Math.Round((arrivalTime - nowTime).TotalMinutes);
+
+                        arrivals.Add(new BusArrival
+                        {
+                            LineName = route.LineName,
+                            TripId = busStop.TripId,
+                            BusStopName = stop.Name,
+                            ArrivalTime = arrivalTime.ToString(),
+                            MinutesUntilArrival = minutesUntil,
+                        });
+                    }
+                }
+                catch (Exception)
+                {
+                    // ignore 25:00:00 and other invalid times
+                }
+            }
+        }
+
+        return arrivals.OrderBy(a => a.MinutesUntilArrival).ToList();
+    }
+
+    private static bool IsValidTripForCurrentDate(DateTime currentDate, string busStopTripId)
+    {
+        return currentDate.DayOfWeek switch
+        {
+            DayOfWeek.Saturday => busStopTripId.StartsWith("L_"),
+            DayOfWeek.Sunday => busStopTripId.StartsWith("S_"),
+            _ => busStopTripId.StartsWith("M-P_")
+        };
     }
 }
 
@@ -214,7 +277,7 @@ public class LinkkiLocationDetails
     [JsonPropertyName("direction")] public uint Direction { get; set; }
     [JsonPropertyName("lineName")] public required string LineName { get; set; }
     [JsonPropertyName("licensePlate")] public required string LicensePlate { get; set; }
-    [JsonPropertyName("id")]  public required string Id { get; set; }
+    [JsonPropertyName("id")] public required string Id { get; set; }
 }
 
 public class BusStopLocationDetails
@@ -224,4 +287,16 @@ public class BusStopLocationDetails
     [JsonPropertyName("longitude")] public double Longitude => Location.Position.Longitude;
     [JsonPropertyName("latitude")] public double Latitude => Location.Position.Latitude;
     [JsonPropertyName("distance")] public required double Distance { get; set; }
+}
+
+public class BusArrival
+{
+    [JsonPropertyName("lineName")] public required string LineName { get; set; }
+    [JsonPropertyName("busStopName")] public required string BusStopName { get; set; }
+    [JsonPropertyName("arrivalTime")] public required string ArrivalTime { get; set; }
+
+    [JsonPropertyName("minutesUntilArrival")]
+    public int MinutesUntilArrival { get; set; }
+
+    [JsonPropertyName("tripId")] public required string TripId { get; set; }
 }

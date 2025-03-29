@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { FaRobot, FaUserCircle, FaArrowUp } from 'react-icons/fa';
+import { FaRobot, FaUserCircle, FaArrowUp, FaTrash } from 'react-icons/fa';
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { FaLocationCrosshairs } from "react-icons/fa6";
@@ -28,6 +28,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
     ]);
     const [isWaitingAi, setWaitingAi] = useState(false);
     const [isFetchingUserLocation, setIsFetchingUserLocation] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const sendMessage = async (message: string) => {
@@ -97,6 +98,33 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
         }
     };
 
+    const clearChatHistory = async () => {
+        setIsClearing(true);
+        try {
+            const response = await fetch(`api/clear-chat-history`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to clear chat history');
+            }
+
+            // Reset messages to initial state
+            setMessages([{
+                text: 'Hello, how can I help you?',
+                timestamp: new Date(),
+                isUser: false
+            }]);
+
+        } catch {
+            toast.error('Failed to clear chat history');
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
@@ -122,7 +150,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                                 : 'bg-gray-100'
                                 }`}
                         >
-                            <div className="justify-left"><Markdown className="text-left" remarkPlugins={[remarkGfm]}>{msg.text}</Markdown></div>
+                            <div className="justify-left text-left"><Markdown remarkPlugins={[remarkGfm]}>{msg.text}</Markdown></div>
                             <div className={`text-xs mt-1 ${msg.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
                                 {msg.timestamp.toLocaleTimeString()}
                             </div>
@@ -174,6 +202,14 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                             disabled={message.trim() === ''}
                         >
                             <FaArrowUp className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={clearChatHistory}
+                            disabled={isClearing}
+                            className="px-6 py-4 rounded-full transition-colors shadow-sm bg-gray-500 text-white hover:bg-gray-600"
+                            title="Clear Chat History"
+                        >
+                            <FaTrash className="w-4 h-4" />
                         </button>
                         <button
                             onClick={shareLocation}

@@ -7,6 +7,8 @@ namespace Api.AI;
 public interface IChatHistoryProvider
 {
     Task<ChatHistory> GetHistoryAsync(string userId);
+    
+    Task ClearHistoryAsync(string userId);
 }
 
 public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAiOptions> options) : IChatHistoryProvider
@@ -34,5 +36,11 @@ public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAi
         });
 
         return chatHistory!;
+    }
+
+    public Task ClearHistoryAsync(string userId)
+    {
+        memoryCache.Remove(userId);
+        return Task.CompletedTask;
     }
 }

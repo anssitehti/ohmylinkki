@@ -32,6 +32,7 @@ module openAi '../../modules/open-ai/open-ai.bicep' = {
   params: {
     name: 'oai-${solution}-${env}'
     location: location
+    tokensPerMinuteRateLimit: 100
   }
   scope: rg
 }
@@ -79,6 +80,16 @@ module log '../../modules/monitoring/log-analytics-workspace.bicep' = {
   params: {
     name: 'log-${solution}-${env}'
     location: location
+  }
+  scope: rg
+}
+
+module appInsights '../../modules/monitoring/application-insights.bicep' = {
+  name: 'appInsights'
+  params: {
+    name: 'appi-${solution}-${env}'
+    location: location
+    logAnalyticsWorkspaceId: log.outputs.id
   }
   scope: rg
 }
@@ -147,6 +158,7 @@ module api '../../modules/container-app/app.bicep' = {
           { name: 'WebPubSub__Endpoint', value: webPubSub.outputs.endpoint }
           { name: 'LinkkiImport__WalttiUsername', secretRef: 'waltti-username' }
           { name: 'LinkkiImport__WalttiPassword', secretRef: 'waltti-password' }
+          { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.outputs.connectionString}
         ]
       }
     ]
@@ -210,6 +222,17 @@ module cosmosdbDataContributorRoleAssignment '../../modules/cosmos-db/data-role-
     principalIds: [deployer().objectId, api.outputs.principalId]
     accountName: cosmosdb.outputs.name
     roleName: 'Cosmos DB Built-in Data Contributor'
+  }
+  scope: rg
+}
+
+
+module xx '../../modules/monitoring/role-assignment.bicep' = {
+  name: 'appInsightsRoleAssignment'
+  params: {
+    principalIds: [deployer().objectId, api.outputs.principalId]
+    resourceId: appInsights.outputs.id
+    roleName: 'Monitoring Metrics Publisher'
   }
   scope: rg
 }
