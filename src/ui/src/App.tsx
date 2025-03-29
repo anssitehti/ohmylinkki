@@ -15,7 +15,7 @@ function App() {
       <header className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 flex items-center justify-center gap-3 shadow-sm rounded-xl">
         <BiSolidBusSchool className="h-10 w-auto" />
         <h1 className="text-2xl font-bold tracking-tight">
-          OhMyLinkki <span className="text-sm font-normal opacity-75">AI Assistant</span>
+          OhMyLinkki <span className="text-sm font-normal opacity-75">AI Agent</span>
         </h1>
       </header>
 
