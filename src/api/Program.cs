@@ -19,7 +19,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 var azureCredential = new DefaultAzureCredential();
 builder.Services.AddSingleton(azureCredential);
-builder.Services.AddOpenTelemetry().UseAzureMonitor();
+builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
+{
+    options.Credential = azureCredential;
+    options.SamplingRatio = 0.1F;   
+    options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+});
 builder.Services.AddOpenTelemetry().WithMetrics(meters => meters.AddMeter("Microsoft.SemanticKernel*"));
 builder.Services.AddOpenTelemetry().WithTracing(traces => traces.AddSource("Microsoft.SemanticKernel*"));
 
@@ -132,11 +137,12 @@ app.MapGet("api/negotiate", ([FromQuery] string? id, WebPubSubServiceClient<Link
     });
 });
 
-app.MapPost("api/clear-chat-history", async (ClearChatHistory clearChatHistory, IChatHistoryProvider chatHistoryProvider) =>
-{
-    await chatHistoryProvider.ClearHistoryAsync(clearChatHistory.UserId);
-    return Results.Ok();
-}).AddEndpointFilter<ValidationFilter<ClearChatHistory>>();
+app.MapPost("api/clear-chat-history",
+    async (ClearChatHistory clearChatHistory, IChatHistoryProvider chatHistoryProvider) =>
+    {
+        await chatHistoryProvider.ClearHistoryAsync(clearChatHistory.UserId);
+        return Results.Ok();
+    }).AddEndpointFilter<ValidationFilter<ClearChatHistory>>();
 
 
 app.MapGet("api/test-linkki-plugin",

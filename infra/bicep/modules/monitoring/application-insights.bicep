@@ -16,5 +16,9 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalyticsWorkspaceId
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
+    DisableLocalAuth: true
   }
 }
+
+output id string = appInsights.id
+output connectionString string = appInsights.properties.ConnectionString

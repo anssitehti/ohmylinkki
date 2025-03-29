@@ -7,6 +7,9 @@ param location string
 @description('The SKU of the resource.')
 param sku string = 'S0'
 
+@description('The number of tokens per minute rate limit for the deployment.')
+param tokensPerMinuteRateLimit int = 10
+
 resource account 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: name
   location: location
@@ -26,7 +29,7 @@ resource gpt4oMini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01'
   name: 'gpt4oMini'
   sku: {
     name: 'GlobalStandard'
-    capacity: 10
+    capacity: tokensPerMinuteRateLimit
   }
   properties: {
     model: {
@@ -35,7 +38,6 @@ resource gpt4oMini 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01'
       version: '2024-07-18'
     }
     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    currentCapacity: 10
     raiPolicyName: 'Microsoft.DefaultV2'
   }
 }
