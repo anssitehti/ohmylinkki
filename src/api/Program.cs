@@ -39,20 +39,26 @@ builder.Services.AddWebPubSub(o =>
 // Semantic Kernel
 
 builder.Services.AddSingleton<LinkkiPlugin>();
-builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>();
 builder.Services.AddTransient((sp) =>
 {
     KernelPluginCollection pluginCollection = [];
     pluginCollection.AddFromObject(sp.GetRequiredService<LinkkiPlugin>());
     return new Kernel(sp, pluginCollection);
 });
-
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
     return new AzureOpenAIChatCompletionService(options.DeploymentName, options.Endpoint, azureCredential,
         options.DeploymentName);
 });
+
+
+builder.Services.AddSingleton<IChatHistoryReducer>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
+    return new ChatHistoryTruncationReducer(targetCount: options.ChatHistoryTruncationReducerTargetCount);
+});
+
 
 // The AI Agent
 builder.Services.AddTransient(sp =>
@@ -73,6 +79,8 @@ builder.Services.AddTransient(sp =>
         };
     return agent;
 });
+
+builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>();
 
 builder.Services.AddMemoryCache();
 
@@ -188,7 +196,7 @@ app.MapPost("api/chat-agent",
             {
                 fullMessage += response.Content;
             }
-
+   
             return Results.Ok(new
             {
                 message = fullMessage,

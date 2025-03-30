@@ -30,5 +30,5 @@ public class Line
     [JsonProperty("name")] public required string Name { get; set; }
     [JsonProperty("routeId")] public required string RouteId { get; set; }
     [JsonProperty("direction")] public required uint Direction { get; set; }
-    [JsonProperty("tripId")] public string TripId { get; set; }
+    [JsonProperty("tripId")] public required string TripId { get; set; }
 }
