@@ -94,11 +94,41 @@ public class LinkkiPlugin
 
         return busStops;
     }
+    
+    [KernelFunction("filter_bus_lines_on_map")]
+    [Description(
+        "Filters the bus lines shown on the map.")]
+    private async Task FilterBusLinesOnMapAsync(
+        [Description("The bus line names to filter on the map")]
+        List<string> lineNames)
+    {
+        try
+        {
+            var userId = _httpContextAccessor.HttpContext?.Items["userId"] as string;
+            await _webPubSubServiceClient.SendToUserAsync(userId,
+                RequestContent.Create(new WebSocketEvent()
+                {
+                    Type = "filter-bus-lines",
+                    Data = lineNames
+                }), ContentType.ApplicationJson);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish locations to WebPubSub Hub.");
+        }
+    }
+    
 
-
-    [KernelFunction("show_bus_stop_location_on_map")]
-    [Description("Shows the bus stop location on the map. Bus stop name, longitude, and latitude are required.")]
-    private async Task ShowBusStopLocationOnMapAsync(string? busStopName, double longitude, double latitude)
+    [KernelFunction("show_bus_stop_on_map")]
+    [Description(
+        "Shows a fixed bus stop location on the map. This is only for displaying stationary bus stops, not for tracking moving bus vehicles.")]
+    private async Task ShowBusStopOnMapAsync(
+        [Description("The name of the bus stop (not a bus or vehicle)")]
+        string busStopName,
+        [Description("The longitude coordinate of the fixed bus stop")]
+        double longitude,
+        [Description("The latitude coordinate of the fixed bus stop")]
+        double latitude)
     {
         if (longitude == 0 || latitude == 0)
         {
@@ -111,10 +141,10 @@ public class LinkkiPlugin
             await _webPubSubServiceClient.SendToUserAsync(userId,
                 RequestContent.Create(new WebSocketEvent()
                 {
-                    Type = "stop",
+                    Type = "show-bus-stop",
                     Data = new
                     {
-                        name = busStopName ?? "unknown",
+                        name = busStopName,
                         coordinates = new[] { longitude, latitude }
                     }
                 }), ContentType.ApplicationJson);
@@ -162,16 +192,16 @@ public class LinkkiPlugin
 
     [KernelFunction("get_bus_stop_details_by_name")]
     [Description(
-        "Gets detailed information about a bus stop including its location, nearby bus lines, and upcoming arrivals.")]
+        "Gets detailed information about a bus stop including its location.")]
     [return:
         Description(
-            "Returns complete details about the bus stop including coordinates, distance from user, and which bus lines service this stop.")]
+            "Returns complete details about the bus stop including coordinates, distance from user or bus.")]
     private async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(
         [Description("The name of the bus stop to search for")]
         string busStopName,
-        [Description("User's current longitude (0 if unavailable)")]
+        [Description("User's or bus line current longitude (0 if unavailable)")]
         double longitude = 0,
-        [Description("User's current latitude (0 if unavailable)")]
+        [Description("User's or bus line  current latitude (0 if unavailable)")]
         double latitude = 0)
     {
         var query = _locationContainer.GetItemLinqQueryable<BusStopLocation>()
@@ -254,7 +284,7 @@ public class LinkkiPlugin
 
         return arrivals.OrderBy(a => a.MinutesUntilArrival).ToList();
     }
-
+    
     private static bool IsValidTripForCurrentDate(DateTime currentDate, string busStopTripId)
     {
         return currentDate.DayOfWeek switch
@@ -286,7 +316,7 @@ public class BusStopLocationDetails
     [JsonPropertyName("location")] public required Point Location { init; get; }
     [JsonPropertyName("longitude")] public double Longitude => Location.Position.Longitude;
     [JsonPropertyName("latitude")] public double Latitude => Location.Position.Latitude;
-    [JsonPropertyName("distance")] public required double Distance { get; set; }
+    [JsonPropertyName("distance")] public double? Distance { get; set; }
 }
 
 public class BusArrival

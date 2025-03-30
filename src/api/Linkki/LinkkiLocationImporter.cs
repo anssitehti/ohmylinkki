@@ -172,7 +172,7 @@ public class LinkkiLocationImporter : BackgroundService
             await _webPubSubServiceClient.SendToAllAsync(
                 RequestContent.Create(new WebSocketEvent()
                 {
-                    Type = "bus",
+                    Type = "linkki-location",
                     Data = locations.Select(location =>
                         new
                         {

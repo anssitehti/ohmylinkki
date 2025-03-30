@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css'
 import useWebSocket from 'react-use-websocket';
@@ -21,13 +21,15 @@ interface BusStop {
 }
 
 interface WebSocketEvent {
-  type: 'bus' | 'stop';
-  data: LinkkiPoint[] | BusStop;
+  type: 'linkki-location' | 'show-bus-stop' | 'filter-bus-lines';
+  data: LinkkiPoint[] | BusStop | string[];
 }
 
 function LinkkiMap({ userId }: { userId: string }) {
 
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null); // useRef to hold the marker instance
+  const [busLinesToShow, setBusLinesToShow] = useState<string[]>([]);
 
   const getSocketUrl = useCallback(async () => {
     const response = await fetch(`api/negotiate?id=${userId}`)
@@ -117,8 +119,12 @@ function LinkkiMap({ userId }: { userId: string }) {
   useEffect(() => {
     const event: WebSocketEvent = lastJsonMessage as WebSocketEvent;
     if (!event) return;
-    if (event.type === 'bus') {
-      const data: LinkkiPoint[] = event.data as LinkkiPoint[];
+    if (event.type === 'linkki-location') {
+      const data: LinkkiPoint[] = (event.data as LinkkiPoint[]).filter(point => {
+        if (busLinesToShow.length === 0) return true;
+        return busLinesToShow.includes(point.line);
+      });
+
       requestAnimationFrame(() => {
         if (mapRef.current) {
           const source = mapRef.current.getSource('points') as maplibregl.GeoJSONSource;
@@ -142,10 +148,18 @@ function LinkkiMap({ userId }: { userId: string }) {
         }
       });
     }
+    
+    if (event.type === 'filter-bus-lines') {
+      setBusLinesToShow(event.data as string[]);
+    }
 
-    if (event.type === 'stop') {
+    if (event.type === 'show-bus-stop') {
       const data: BusStop = event.data as BusStop;
       if (mapRef.current) {
+
+        if (markerRef.current) {
+          markerRef.current.remove();
+        }
 
         const markerEl = document.createElement('div')
         const root = createRoot(markerEl)
@@ -156,15 +170,30 @@ function LinkkiMap({ userId }: { userId: string }) {
           </div>
         )
 
-        new maplibregl.Marker({ element: markerEl })
+
+        const marker = new maplibregl.Marker({ element: markerEl })
           .setLngLat(data.coordinates)
           .addTo(mapRef.current);
+
+        markerRef.current = marker;
 
         mapRef.current.flyTo({
           center: data.coordinates,
           zoom: 16,
           essential: true
         });
+
+        setTimeout(() => {
+          if (markerRef.current) {
+            markerRef.current.remove();
+            markerRef.current = null; // Clear the ref
+          }
+          mapRef.current?.flyTo({
+            center: [25.7473, 62.2426],
+            zoom: 11,
+            essential: true
+          });
+        }, 10000);
       }
 
     }
