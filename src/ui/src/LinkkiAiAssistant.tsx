@@ -167,7 +167,7 @@ function LinkkiAiAssistant({ userId }: { userId: string }) {
                         </div>
                         <div className="p-4 rounded-2xl max-w-[70%] shadow-sm bg-gray-100">
                             <span className="text-gray-500 italic text-sm">
-                                AI Assistant is typing...
+                                AI Agent is typing...
                             </span>
                         </div>
                     </div>

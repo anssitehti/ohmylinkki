@@ -7,40 +7,53 @@ namespace Api.AI;
 public interface IChatHistoryProvider
 {
     Task<ChatHistory> GetHistoryAsync(string userId);
-    
+
     Task<ChatHistory> GetAgentHistoryAsync(string userId);
-    
+
     Task ClearHistoryAsync(string userId);
 }
 
-public class MemoryChatHistoryProvider(IMemoryCache memoryCache, IOptions<OpenAiOptions> options) : IChatHistoryProvider
+public class MemoryChatHistoryProvider(
+    IMemoryCache memoryCache,
+    IOptions<OpenAiOptions> options,
+    IChatHistoryReducer historyReducer) : IChatHistoryProvider
 {
-
     public async Task<ChatHistory> GetHistoryAsync(string userId)
     {
-        var chatHistory = await memoryCache.GetOrCreateAsync(userId, entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes);
-            return Task.FromResult(new ChatHistory(AgentInstructions.LinkkiAgentInstructions));
-        });
-
-        return chatHistory!;
+        return await GetChatHistoryAsync(userId, "chat", true);
     }
 
     public async Task<ChatHistory> GetAgentHistoryAsync(string userId)
     {
-        var chatHistory = await memoryCache.GetOrCreateAsync(userId, entry =>
+        return await GetChatHistoryAsync(userId, "agent", false);
+    }
+
+    private async Task<ChatHistory> GetChatHistoryAsync(string userId, string type, bool includeInstructions)
+    {
+        var cacheKey = $"{userId}_{type}";
+
+        var chatHistory = await memoryCache.GetOrCreateAsync(cacheKey, entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes);
-            return Task.FromResult(new ChatHistory());
+            return Task.FromResult(includeInstructions
+                ? new ChatHistory(AgentInstructions.LinkkiAgentInstructions)
+                : new ChatHistory());
         });
 
-        return chatHistory!;
+        var reducedMessages = await historyReducer.ReduceAsync(chatHistory!);
+
+        if (reducedMessages == null) return chatHistory!;
+
+        var reducedHistory = new ChatHistory(reducedMessages);
+        memoryCache.Set(cacheKey, reducedHistory,
+            TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes));
+        return reducedHistory;
     }
 
     public Task ClearHistoryAsync(string userId)
     {
-        memoryCache.Remove(userId);
+        memoryCache.Remove($"{userId}_chat");
+        memoryCache.Remove($"{userId}_agent");
         return Task.CompletedTask;
     }
 }

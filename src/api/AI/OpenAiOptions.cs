@@ -11,4 +11,5 @@ public class OpenAiOptions
     public int ChatHistoryExpirationMinutes { get; set; } = 5;
     
     public double Temperature { get; set; }
+    public int ChatHistoryTruncationReducerTargetCount { get; set; } = 10;
 }
