@@ -18,7 +18,7 @@ param targetPort int = 80
 param scaleMaxReplicas int = 1
 
 @description('Minimum number of container replicas.')
-param scaleMinReplicas int = 0
+param scaleMinReplicas int = 1
 
 @description('The name of the workload profile to use.')
 param workloadProfileName string = 'Consumption'
