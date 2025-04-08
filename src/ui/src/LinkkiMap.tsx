@@ -197,10 +197,10 @@ function LinkkiMap({ userId }: { userId: string }) {
       }
 
     }
-  }, [lastJsonMessage])
+  }, [busLinesToShow, lastJsonMessage])
 
   return (
-    <div className="h-[600px] md:h-[800px] bg-gray-50 rounded-lg shadow-sm p-6">
+    <div className="md:h-[500px] 2xl:h-[800px] bg-gray-50 rounded-lg shadow-sm p-6">
       <div id="map" className="w-full h-full rounded-lg" />
     </div>
   )
