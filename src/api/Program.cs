@@ -41,7 +41,9 @@ builder.Services.AddWebPubSub(o =>
 builder.Services.AddSingleton<LinkkiHubService>();
 
 // Semantic Kernel
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton<MapPlugin>();
+
+builder.Services.AddTransient(sp =>
 {
     var linkkiOptions = sp.GetRequiredService<IOptions<LinkkiOptions>>().Value;
     var linkkiMcpClient = McpClientFactory.CreateAsync(new SseClientTransport(new SseClientTransportOptions
@@ -49,13 +51,11 @@ builder.Services.AddSingleton(sp =>
     return linkkiMcpClient;
 });
 
-builder.Services.AddSingleton<MapPlugin>();
 builder.Services.AddTransient(sp =>
 {
     KernelPluginCollection pluginCollection = [];
     pluginCollection.AddFromObject(sp.GetRequiredService<MapPlugin>());
-
-
+    
     var linkkiMcpTools = sp.GetRequiredService<IMcpClient>().ListToolsAsync().GetAwaiter().GetResult();
     pluginCollection.AddFromFunctions("LinkkiMcp",
         linkkiMcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
