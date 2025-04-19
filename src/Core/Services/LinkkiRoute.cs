@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Api.Linkki;
+namespace Core.Services;
 
 public class LinkkiRoute
 {

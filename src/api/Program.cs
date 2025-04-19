@@ -1,23 +1,25 @@
 using Api;
 using Api.AI;
-using Api.Linkki;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Core;
+using Core.Services;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.WebPubSub.AspNetCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol.Transport;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
 
 var azureCredential = new DefaultAzureCredential();
 builder.Services.AddSingleton(azureCredential);
@@ -30,19 +32,34 @@ builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
 builder.Services.AddOpenTelemetry().WithMetrics(meters => meters.AddMeter("Microsoft.SemanticKernel*"));
 builder.Services.AddOpenTelemetry().WithTracing(traces => traces.AddSource("Microsoft.SemanticKernel*"));
 
+
 // Azure Web PubSub
 builder.Services.AddWebPubSub(o =>
         o.ServiceEndpoint =
             new WebPubSubServiceEndpoint(new Uri(builder.Configuration["WebPubSub:Endpoint"]!), azureCredential))
     .AddWebPubSubServiceClient<LinkkiHub>();
+builder.Services.AddSingleton<LinkkiHubService>();
 
 // Semantic Kernel
+builder.Services.AddSingleton(sp =>
+{
+    var linkkiOptions = sp.GetRequiredService<IOptions<LinkkiOptions>>().Value;
+    var linkkiMcpClient = McpClientFactory.CreateAsync(new SseClientTransport(new SseClientTransportOptions
+        { Endpoint = new Uri(linkkiOptions.LinkkiMcpServerUrl) })).GetAwaiter().GetResult();
+    return linkkiMcpClient;
+});
 
-builder.Services.AddSingleton<LinkkiPlugin>();
-builder.Services.AddTransient((sp) =>
+builder.Services.AddSingleton<MapPlugin>();
+builder.Services.AddTransient(sp =>
 {
     KernelPluginCollection pluginCollection = [];
-    pluginCollection.AddFromObject(sp.GetRequiredService<LinkkiPlugin>());
+    pluginCollection.AddFromObject(sp.GetRequiredService<MapPlugin>());
+
+
+    var linkkiMcpTools = sp.GetRequiredService<IMcpClient>().ListToolsAsync().GetAwaiter().GetResult();
+    pluginCollection.AddFromFunctions("LinkkiMcp",
+        linkkiMcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
+
     return new Kernel(sp, pluginCollection);
 });
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
@@ -73,7 +90,8 @@ builder.Services.AddTransient(sp =>
             Kernel = kernel,
             Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings()
             {
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new FunctionChoiceBehaviorOptions
+                    { RetainArgumentTypes = true }),
                 Temperature = options.Temperature
             })
         };
@@ -85,7 +103,7 @@ builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>()
 builder.Services.AddMemoryCache();
 
 builder.Services.AddOptionsWithValidateOnStart<LinkkiOptions>()
-    .Bind(builder.Configuration.GetSection("LinkkiImport")).ValidateDataAnnotations();
+    .Bind(builder.Configuration.GetSection("Linkki")).ValidateDataAnnotations();
 
 builder.Services.AddOptionsWithValidateOnStart<OpenAiOptions>()
     .Bind(builder.Configuration.GetSection("OpenAi")).ValidateDataAnnotations();
@@ -103,6 +121,17 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
     });
 });
 
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+    var cosmosClient = sp.GetRequiredService<CosmosClient>();
+    var memoryCache = sp.GetRequiredService<IMemoryCache>();
+    var logger = sp.GetRequiredService<ILogger<LinkkiService>>();
+    return new LinkkiService(options.Database, options.LocationContainer, options.RouteContainer, cosmosClient,
+        memoryCache, logger);
+});
+
+
 builder.Services.AddHostedService<LinkkiLocationImporter>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddProblemDetails();
@@ -117,39 +146,6 @@ app.UseStatusCodePages();
 app.MapHealthChecks("/healthz/startup");
 app.MapHealthChecks("/healthz/readiness");
 app.MapHealthChecks("/healthz/liveness");
-
-app.MapPost("api/chat",
-    async (UserChatMessage message, Kernel kernel, IChatHistoryProvider chatHistoryProvider,
-        IHttpContextAccessor httpContextAccessor, IOptions<OpenAiOptions> openAiOptions) =>
-    {
-        if (httpContextAccessor.HttpContext != null) httpContextAccessor.HttpContext.Items["userId"] = message.UserId;
-        var chatHistory = await chatHistoryProvider.GetHistoryAsync(message.UserId);
-        chatHistory.AddUserMessage(message.Message);
-
-        var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-        try
-        {
-            var result = await chatCompletionService.GetChatMessageContentAsync(chatHistory,
-                executionSettings: new AzureOpenAIPromptExecutionSettings()
-                {
-                    ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-                    Temperature = openAiOptions.Value.Temperature
-                },
-                kernel: kernel);
-            chatHistory.Add(result);
-
-            return Results.Ok(new
-            {
-                message = result.Content,
-                usage = result.Metadata?["Usage"],
-                modelId = result.ModelId
-            });
-        }
-        catch (TaskCanceledException)
-        {
-            return Results.StatusCode(408);
-        }
-    }).AddEndpointFilter<ValidationFilter<UserChatMessage>>();
 
 app.MapGet("api/negotiate", ([FromQuery] string? id, WebPubSubServiceClient<LinkkiHub> service) =>
 {
@@ -177,7 +173,7 @@ app.MapPost("api/clear-chat-history",
 
 app.MapPost("api/chat-agent",
     async (UserChatMessage userMessage, ChatCompletionAgent agent, IChatHistoryProvider chatHistoryProvider,
-        IHttpContextAccessor httpContextAccessor, IOptions<OpenAiOptions> openAiOptions) =>
+        IHttpContextAccessor httpContextAccessor) =>
     {
         if (httpContextAccessor.HttpContext != null)
         {
@@ -196,7 +192,7 @@ app.MapPost("api/chat-agent",
             {
                 fullMessage += response.Content;
             }
-   
+
             return Results.Ok(new
             {
                 message = fullMessage,
@@ -208,11 +204,5 @@ app.MapPost("api/chat-agent",
         }
     }).AddEndpointFilter<ValidationFilter<UserChatMessage>>();
 
-app.MapGet("api/test-linkki-plugin",
-    ([FromQuery] string busStopName, [FromQuery] string lineName, LinkkiPlugin plugin) =>
-    {
-        var result = plugin.GetBusArrivalTimes(busStopName, lineName);
-        return Results.Ok(result);
-    });
 
 app.Run();

@@ -1,42 +1,40 @@
 using Azure.Core;
-using Microsoft.Azure.Cosmos;
+using Core;
+using Core.Services;
 using Microsoft.Azure.Cosmos.Spatial;
 using Microsoft.Azure.WebPubSub.AspNetCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using RestSharp;
 using RestSharp.Authenticators;
 using TransitRealtime;
 using ContentType = Azure.Core.ContentType;
+using Line = Core.Services.Line;
+using LinkkiLocation = Core.Services.LinkkiLocation;
+using Vehicle = Core.Services.Vehicle;
 
-namespace Api.Linkki;
+namespace Api;
 
 public class LinkkiLocationImporter : BackgroundService
 {
     private readonly ILogger<LinkkiLocationImporter> _logger;
     private readonly RestClient _client;
     private readonly LinkkiOptions _options;
-    private readonly Container _locationContainer;
     private readonly WebPubSubServiceClient<LinkkiHub> _webPubSubServiceClient;
-    private readonly Container _routeContainer;
-    private readonly IMemoryCache _memoryCache;
+    private readonly LinkkiService _linkkiService;
 
     public LinkkiLocationImporter(ILogger<LinkkiLocationImporter> logger, IOptions<LinkkiOptions> linkkiOptions,
-        CosmosClient cosmosClient,
-        WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient, IMemoryCache memoryCache)
+        LinkkiService linkkiService,
+        WebPubSubServiceClient<LinkkiHub> webPubSubServiceClient)
     {
         _logger = logger;
         _options = linkkiOptions.Value;
+        _linkkiService = linkkiService;
         var restClientOptions = new RestClientOptions(_options.WalttiBaseUrl)
         {
             Authenticator = new HttpBasicAuthenticator(_options.WalttiUsername, _options.WalttiPassword)
         };
         _client = new RestClient(restClientOptions);
-        _locationContainer =
-            cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.LocationContainer);
-        _routeContainer = cosmosClient.GetContainer(linkkiOptions.Value.Database, linkkiOptions.Value.RouteContainer);
         _webPubSubServiceClient = webPubSubServiceClient;
-        _memoryCache = memoryCache;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -76,7 +74,7 @@ public class LinkkiLocationImporter : BackgroundService
             foreach (var feedEntity in feedMessage.Entity)
             {
                 var id = feedEntity.Vehicle.Vehicle.Id;
-                var lineName = await GetLineName(feedEntity.Vehicle.Trip.RouteId);
+                var lineName = await _linkkiService.GetLineName(feedEntity.Vehicle.Trip.RouteId);
                 if (lineName == null)
                 {
                     _logger.LogWarning("Unknown route id {RouteId} {Headsign}", feedEntity.Vehicle.Trip.RouteId,
@@ -100,20 +98,9 @@ public class LinkkiLocationImporter : BackgroundService
         }
 
 
-        await UpsertLocationsAsync(locations.Values, cancellationToken);
+        await _linkkiService.UpsertLocationsAsync(locations.Values, cancellationToken);
 
         await PublishToAllAsync(locations.Values);
-    }
-
-    private async Task<string?> GetLineName(string routeId)
-    {
-        return await _memoryCache.GetOrCreateAsync(routeId, entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60);
-            var lineName = _routeContainer.GetItemLinqQueryable<LinkkiRoute>()
-                .Where(x => x.Id == routeId).Select(x => x.LineName).FirstOrDefault();
-            return Task.FromResult(lineName);
-        });
     }
 
     private LinkkiLocation MapLinkkiLocation(FeedEntity feedEntity, string lineName)
@@ -142,28 +129,6 @@ public class LinkkiLocationImporter : BackgroundService
         return location;
     }
 
-    private async Task UpsertLocationsAsync(IEnumerable<LinkkiLocation> locations, CancellationToken cancellationToken)
-    {
-        List<Task> upsertItemTasks = [];
-        foreach (var location in locations)
-        {
-            var task = Task.Run(async () =>
-            {
-                try
-                {
-                    await _locationContainer.UpsertItemAsync(location, new PartitionKey(location.Type),
-                        cancellationToken: cancellationToken);
-                }
-                catch (CosmosException ex)
-                {
-                    _logger.LogError(ex, "Failed to upsert location of {Line}", location.Line.Name);
-                }
-            }, cancellationToken);
-            upsertItemTasks.Add(task);
-        }
-
-        await Task.WhenAll(upsertItemTasks);
-    }
 
     private async Task PublishToAllAsync(IEnumerable<LinkkiLocation> locations)
     {

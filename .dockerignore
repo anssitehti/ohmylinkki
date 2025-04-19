@@ -21,6 +21,6 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
-**/ui
+**/appsettings.Development.json
 LICENSE
 README.md

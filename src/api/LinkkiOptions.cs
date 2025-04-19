@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Api.Linkki;
-
+namespace Core;
 public class LinkkiOptions
 {
     [Required] public required long ImportInterval { get; init; } = 2000;
@@ -11,10 +10,6 @@ public class LinkkiOptions
 
     [Required] public required string WalttiPassword { get; set; }
     [Required] public required string WalttiUsername { get; set; }
-
-    [Required] public required string Database { get; init; } = "linkki";
-
-    [Required] public required string LocationContainer { get; init; } = "locations";
-
-    [Required] public required string RouteContainer { get; init; } = "routes";
+    
+    [Required] public required string LinkkiMcpServerUrl { get; set; }
 }

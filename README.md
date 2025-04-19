@@ -96,6 +96,7 @@ export DOCKER_HUB_USERNAME=<your_username>
 
 export OHMYLINKKI_API_VERSION=<version>
 export OHMYLINKKI_UI_VERSION=<version>
+export OHMYLINKKI_MCP_SERVER_VERSION=<version>
 export OHMYLINKKI_NGINX_PROXY_VERSION=<version>
 ```
 
@@ -110,6 +111,10 @@ docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION
 
 docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION -f nginx-proxy/Dockerfile nginx-proxy
 docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION
+
+docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION -f src/McpServer/Dockerfile .
+docker push $DOCKER_HUB_USERNAME/ohmylinkki-mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION
+
 
 ```
 
