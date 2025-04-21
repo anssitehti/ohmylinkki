@@ -12,6 +12,8 @@ param apiImage string
 
 param uiImage string
 
+param linkkiMcpServerImage string
+
 @secure()
 param walttiUsername string
 
@@ -22,9 +24,32 @@ param customDomain string = ''
 
 param managedEnvironmentManagedCertificateId string = ''
 
+param acrResourceId string
+
+param acrUrl string
+
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: 'rg-${solution}-${env}'
   location: location
+}
+
+module mi '../../modules/identity/user-assigned-identity.bicep' = {
+  name: 'mi'
+  params: {
+    name: 'id-${solution}-${env}'
+    location: location
+  }
+  scope: rg
+}
+
+module acrPullRoleAssignment '../../modules/container-registry/role-assignment.bicep' = {
+  name: 'acrPullRoleAssignment'
+  params: {
+    principalIds: [mi.outputs.principalId]
+    resourceId: acrResourceId
+    roleName: 'AcrPull'
+  }
+  scope: resourceGroup(split(acrResourceId, '/')[4])
 }
 
 module openAi '../../modules/open-ai/open-ai.bicep' = {
@@ -122,6 +147,35 @@ module ui '../../modules/container-app/app.bicep' = {
         }
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
+  }
+  scope: rg
+}
+
+module mcpServer '../../modules/container-app/app.bicep' = {
+  name: 'mcpServer'
+  params: {
+    name: 'ca-${solution}-linkki-mcp-${env}'
+    location: location
+    environmentId: cae.outputs.id
+    ingressExternal: false
+    targetPort: 8080
+    containers: [
+      {
+        image: linkkiMcpServerImage
+        name: 'ohmylinkki-linkki-mcp-server'
+        resources: {
+          cpu: json('0.25')
+          memory: '0.5Gi'
+        }
+        env: [
+          { name: 'CosmosDb__Endpoint', value: cosmosdb.outputs.endpoint }
+        ]
+      }
+    ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -156,12 +210,16 @@ module api '../../modules/container-app/app.bicep' = {
           { name: 'OpenAi__Endpoint', value: openAi.outputs.endpoint }
           { name: 'CosmosDb__Endpoint', value: cosmosdb.outputs.endpoint }
           { name: 'WebPubSub__Endpoint', value: webPubSub.outputs.endpoint }
-          { name: 'LinkkiImport__WalttiUsername', secretRef: 'waltti-username' }
-          { name: 'LinkkiImport__WalttiPassword', secretRef: 'waltti-password' }
-          { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.outputs.connectionString}
+          { name: 'Linkki__WalttiUsername', secretRef: 'waltti-username' }
+          { name: 'Linkki__WalttiPassword', secretRef: 'waltti-password' }
+          { name: 'Linkki__ImportInterval', value: 2000 }
+          { name: 'Linkki__LinkkiMcpServerUrl', value: 'https://${mcpServer.outputs.fqdn}' }
+          { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.outputs.connectionString }
         ]
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -190,6 +248,8 @@ module nginxProxy '../../modules/container-app/app.bicep' = {
         ]
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -219,15 +279,14 @@ module openAiUserRoleAssignment '../../modules/open-ai/role-assignment.bicep' = 
 module cosmosdbDataContributorRoleAssignment '../../modules/cosmos-db/data-role-assignment.bicep' = {
   name: 'cosmosdbDataContributorRoleAssignment'
   params: {
-    principalIds: [deployer().objectId, api.outputs.principalId]
+    principalIds: [deployer().objectId, api.outputs.principalId, mcpServer.outputs.principalId]
     accountName: cosmosdb.outputs.name
     roleName: 'Cosmos DB Built-in Data Contributor'
   }
   scope: rg
 }
 
-
-module xx '../../modules/monitoring/role-assignment.bicep' = {
+module metricsPublisher '../../modules/monitoring/role-assignment.bicep' = {
   name: 'appInsightsRoleAssignment'
   params: {
     principalIds: [deployer().objectId, api.outputs.principalId]

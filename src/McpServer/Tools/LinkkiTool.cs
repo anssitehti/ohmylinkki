@@ -1,68 +1,66 @@
 using System.ComponentModel;
 using Core.Dto;
 using Core.Services;
-using Microsoft.SemanticKernel;
+using ModelContextProtocol.Server;
 
+namespace McpServer.Tools;
 
-namespace Api.AI;
-
-public class LinkkiPlugin
+public sealed class LinkkiTool
 {
     private readonly LinkkiService _linkkiService;
 
-
-    public LinkkiPlugin(LinkkiService linkkiService)
+    public LinkkiTool(LinkkiService linkkiService)
     {
         _linkkiService = linkkiService;
     }
 
-    [KernelFunction("get_location")]
+    [McpServerTool(Name = "get_location", Destructive = false, ReadOnly = true)]
     [Description("Gets the current location and status of buses operating on the specified line number.")]
     [return:
         Description(
             "Returns detailed information about buses currently operating on the specified line, including position, speed, direction, and destination.")]
-    private async Task<List<LinkkiLocationDetails>> GetLocationAsync(
+    public async Task<List<LinkkiLocationDetails>> GetLocationAsync(
         [Description("The bus line number or name to search for.")]
         string lineName)
     {
         return await _linkkiService.GetLocationAsync(lineName);
     }
 
-    [KernelFunction("get_closest_bus_stops")]
+    [McpServerTool(Name = "get_closest_bus_stops", Destructive = false, ReadOnly = true)]
     [Description(
         "Gets the closest bus stops to the given location and within the given distance. The default distance is 300 meters.")]
     [return: Description("Returns the bus stops.")]
-    private async Task<List<BusStopLocationDetails>> GetClosestBusStopAsync(double longitude, double latitude,
+    public async Task<List<BusStopLocationDetails>> GetClosestBusStopAsync(
+        double longitude, double latitude,
         double distance = 300)
     {
         return await _linkkiService.GetClosestBusStopAsync(longitude, latitude, distance);
     }
 
-
-    [KernelFunction("get_bus_stop_names")]
+    [McpServerTool(Name = "get_bus_stop_names", Destructive = false, ReadOnly = true)]
     [Description(
         "Gets the bus stops names for the given line and tripId.")]
     [return: Description("Returns the bus stops names.")]
-    private List<string>? GetBusStops(string lineName, string tripId)
+    public List<string>? GetBusStops(string lineName, string tripId)
     {
         return _linkkiService.GetBusStops(lineName, tripId);
     }
 
-    [KernelFunction("get_available_lines")]
+    [McpServerTool(Name = "get_available_lines", Destructive = false, ReadOnly = true)]
     [Description("Gets the available lines.")]
     [return: Description("Returns the available lines.")]
-    private async Task<string[]> GetAvailableLinesAsync()
+    public async Task<string[]> GetAvailableLinesAsync()
     {
         return await _linkkiService.GetAvailableLinesAsync();
     }
 
-    [KernelFunction("get_bus_stop_details_by_name")]
+    [McpServerTool(Name = "get_bus_stop_details_by_name", Destructive = false, ReadOnly = true)]
     [Description(
         "Gets detailed information about a bus stop including its location.")]
     [return:
         Description(
             "Returns complete details about the bus stop including coordinates, distance from user or bus.")]
-    private async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(
+    public async Task<BusStopLocationDetails?> GetBusStopDetailsByNameAsync(
         [Description("The name of the bus stop to search for")]
         string busStopName,
         [Description("User's or bus line current longitude (0 if unavailable)")]
@@ -73,7 +71,7 @@ public class LinkkiPlugin
         return await _linkkiService.GetBusStopDetailsByNameAsync(busStopName, longitude, latitude);
     }
 
-    [KernelFunction("get_bus_arrival_times")]
+    [McpServerTool(Name = "get_bus_arrival_times", Destructive = false, ReadOnly = true)]
     [Description("Gets upcoming arrival times for buses at a specific stop and line name.")]
     [return:
         Description(

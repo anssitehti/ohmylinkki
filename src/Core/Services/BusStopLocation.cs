@@ -1,7 +1,7 @@
 using Microsoft.Azure.Cosmos.Spatial;
 using Newtonsoft.Json;
 
-namespace Api.Linkki;
+namespace Core.Services;
 
 public class BusStopLocation
 {

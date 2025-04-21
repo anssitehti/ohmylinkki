@@ -35,11 +35,20 @@ param customDomain string = ''
 @description('The resource id of the managed certificate.')
 param managedEnvironmentManagedCertificateId string = ''
 
+@description('The managed identity to use for pulling images from ACR.')
+param acrPullIdentityResurceId string
+
+@description('The url of the ACR registry to pull images from.')
+param acrUrl string
+
 resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: name
   location: location
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${acrPullIdentityResurceId}': {}
+    }
   }
   properties: {
     environmentId: environmentId
@@ -60,6 +69,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
           : null
       }
       secrets: secrets
+      registries: [
+        {
+          server: acrUrl
+          identity: acrPullIdentityResurceId
+        }
+      ]
     }
     template: {
       containers: containers
