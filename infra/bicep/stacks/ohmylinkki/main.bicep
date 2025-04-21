@@ -24,9 +24,32 @@ param customDomain string = ''
 
 param managedEnvironmentManagedCertificateId string = ''
 
+param acrResourceId string
+
+param acrUrl string
+
 resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
   name: 'rg-${solution}-${env}'
   location: location
+}
+
+module mi '../../modules/identity/user-assigned-identity.bicep' = {
+  name: 'mi'
+  params: {
+    name: 'id-${solution}-${env}'
+    location: location
+  }
+  scope: rg
+}
+
+module acrPullRoleAssignment '../../modules/container-registry/role-assignment.bicep' = {
+  name: 'acrPullRoleAssignment'
+  params: {
+    principalIds: [mi.outputs.principalId]
+    resourceId: acrResourceId
+    roleName: 'AcrPull'
+  }
+  scope: resourceGroup(split(acrResourceId, '/')[4])
 }
 
 module openAi '../../modules/open-ai/open-ai.bicep' = {
@@ -124,6 +147,8 @@ module ui '../../modules/container-app/app.bicep' = {
         }
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -149,6 +174,8 @@ module mcpServer '../../modules/container-app/app.bicep' = {
         ]
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -191,6 +218,8 @@ module api '../../modules/container-app/app.bicep' = {
         ]
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }
@@ -219,6 +248,8 @@ module nginxProxy '../../modules/container-app/app.bicep' = {
         ]
       }
     ]
+    acrPullIdentityResurceId: mi.outputs.id
+    acrUrl: acrUrl
   }
   scope: rg
 }

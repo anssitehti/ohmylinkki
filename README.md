@@ -87,33 +87,36 @@ Follow these steps to deploy the solution to Azure.
 
 ### Build images
 
-Use following commands to create and push images to docker hub.
+Use following commands to create and push images to Azure Container Registry.
 
 Set username and versions.
 
 ```sh
-export DOCKER_HUB_USERNAME=<your_username>
-
+export AZURE_CONTAINER_REGISTRY_URL=<acr_login_url>
 export OHMYLINKKI_API_VERSION=<version>
 export OHMYLINKKI_UI_VERSION=<version>
 export OHMYLINKKI_MCP_SERVER_VERSION=<version>
 export OHMYLINKKI_NGINX_PROXY_VERSION=<version>
+
 ```
 
-Tag and push images to Docker Hub.
+Tag and push images to Azure Container Registry.
 
 ```sh
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-api:$OHMYLINKKI_API_VERSION -f src/api/Dockerfile .
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-api:$OHMYLINKKI_API_VERSION
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION -f src/ui/Dockerfile src/ui/
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-ui:$OHMYLINKKI_UI_VERSION
+az acr login --name $AZURE_CONTAINER_REGISTRY_URL
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION -f nginx-proxy/Dockerfile nginx-proxy
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION
+docker build -t $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/api:$OHMYLINKKI_API_VERSION -f src/api/Dockerfile .
+docker push $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/api:$OHMYLINKKI_API_VERSION
 
-docker build -t $DOCKER_HUB_USERNAME/ohmylinkki-mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION -f src/McpServer/Dockerfile .
-docker push $DOCKER_HUB_USERNAME/ohmylinkki-mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION
+docker build -t $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/ui:$OHMYLINKKI_UI_VERSION -f src/ui/Dockerfile src/ui/
+docker push $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/ui:$OHMYLINKKI_UI_VERSION
+
+docker build -t $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION -f nginx-proxy/Dockerfile nginx-proxy
+docker push $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/nginx-proxy:$OHMYLINKKI_NGINX_PROXY_VERSION
+
+docker build -t $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION -f src/McpServer/Dockerfile .
+docker push $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/mcp-server:$OHMYLINKKI_MCP_SERVER_VERSION
 
 
 ```
