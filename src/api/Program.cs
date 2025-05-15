@@ -15,8 +15,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol.Transport;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -43,25 +42,7 @@ builder.Services.AddSingleton<LinkkiHubService>();
 // Semantic Kernel
 builder.Services.AddSingleton<MapPlugin>();
 
-builder.Services.AddTransient(sp =>
-{
-    var linkkiOptions = sp.GetRequiredService<IOptions<LinkkiOptions>>().Value;
-    var linkkiMcpClient = McpClientFactory.CreateAsync(new SseClientTransport(new SseClientTransportOptions
-        { Endpoint = new Uri(linkkiOptions.LinkkiMcpServerUrl) })).GetAwaiter().GetResult();
-    return linkkiMcpClient;
-});
-
-builder.Services.AddTransient(sp =>
-{
-    KernelPluginCollection pluginCollection = [];
-    pluginCollection.AddFromObject(sp.GetRequiredService<MapPlugin>());
-    
-    var linkkiMcpTools = sp.GetRequiredService<IMcpClient>().ListToolsAsync().GetAwaiter().GetResult();
-    pluginCollection.AddFromFunctions("LinkkiMcp",
-        linkkiMcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
-
-    return new Kernel(sp, pluginCollection);
-});
+builder.Services.AddSingleton<LinkkiAgentFactory>();
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
@@ -76,27 +57,6 @@ builder.Services.AddSingleton<IChatHistoryReducer>(sp =>
     return new ChatHistoryTruncationReducer(targetCount: options.ChatHistoryTruncationReducerTargetCount);
 });
 
-
-// The AI Agent
-builder.Services.AddTransient(sp =>
-{
-    var kernel = sp.GetRequiredService<Kernel>();
-    var options = sp.GetRequiredService<IOptions<OpenAiOptions>>().Value;
-    ChatCompletionAgent agent =
-        new()
-        {
-            Name = "LinkkiAgent",
-            Instructions = AgentInstructions.LinkkiAgentInstructions,
-            Kernel = kernel,
-            Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings()
-            {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(options: new FunctionChoiceBehaviorOptions
-                    { RetainArgumentTypes = true }),
-                Temperature = options.Temperature
-            })
-        };
-    return agent;
-});
 
 builder.Services.AddSingleton<IChatHistoryProvider, MemoryChatHistoryProvider>();
 
@@ -172,7 +132,7 @@ app.MapPost("api/clear-chat-history",
 
 
 app.MapPost("api/chat-agent",
-    async (UserChatMessage userMessage, ChatCompletionAgent agent, IChatHistoryProvider chatHistoryProvider,
+    async (UserChatMessage userMessage, LinkkiAgentFactory agentFactory, IChatHistoryProvider chatHistoryProvider,
         IHttpContextAccessor httpContextAccessor) =>
     {
         if (httpContextAccessor.HttpContext != null)
@@ -186,6 +146,7 @@ app.MapPost("api/chat-agent",
 
         try
         {
+            var agent = await agentFactory.CreateAgentAsync();
             var fullMessage = "";
             await foreach (ChatMessageContent response in agent.InvokeAsync(
                                new ChatMessageContent(AuthorRole.User, userMessage.Message), thread))
