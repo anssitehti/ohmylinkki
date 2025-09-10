@@ -24,7 +24,7 @@ if (tools.Count == 0)
 Console.WriteLine($"Found {tools.Count} tools on the server.");
 Console.WriteLine();
 
-foreach (var tool in await client.ListToolsAsync())
+foreach (var tool in tools)
 {
     Console.WriteLine($"{tool.Name} ({tool.Description})");
 }
