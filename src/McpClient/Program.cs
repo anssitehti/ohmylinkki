@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 
 
 Console.WriteLine("Hello, I am MCP client. Here is a list of tools available from the server: \n");
@@ -12,19 +13,32 @@ var clientTransport = new SseClientTransport(new SseClientTransportOptions
 
 var client = await McpClientFactory.CreateAsync(clientTransport);
 
-// Print the list of tools available from the server.
+var tools = await client.ListToolsAsync();
+
+if (tools.Count == 0)
+{
+    Console.WriteLine("No tools available on the server.");
+    return;
+}
+
+Console.WriteLine($"Found {tools.Count} tools on the server.");
+Console.WriteLine();
+
 foreach (var tool in await client.ListToolsAsync())
 {
     Console.WriteLine($"{tool.Name} ({tool.Description})");
 }
 
-var response = await client.CallToolAsync("get_available_lines");
+var result = await client.CallToolAsync("get_available_lines");
 
 Console.WriteLine("\nHere is a list of available lines: \n");
 
-Console.WriteLine(response.IsError);
+Console.WriteLine(result.IsError);
 
-foreach (var content in response.Content)
+Console.WriteLine("Result: " + ((TextContentBlock)result.Content[0]).Text);
+Console.WriteLine();
+
+foreach (var content in result.Content.OfType<TextContentBlock>())
 {
-    Console.WriteLine($"{content.Text} ({content.Data})");
+    Console.WriteLine($"{content.Text}");
 }
