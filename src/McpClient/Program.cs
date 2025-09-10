@@ -35,7 +35,6 @@ Console.WriteLine("\nHere is a list of available lines: \n");
 
 Console.WriteLine(result.IsError);
 
-Console.WriteLine("Result: " + ((TextContentBlock)result.Content[0]).Text);
 Console.WriteLine();
 
 foreach (var content in result.Content.OfType<TextContentBlock>())
