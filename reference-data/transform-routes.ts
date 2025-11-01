@@ -14,9 +14,7 @@ interface TripBusStop {
 interface BusStopDetails {
     id: string;
     name: string;
-    //stopSequence: number;
     arrivalTime: string;
-    //departureTime: string;
 }
 
 interface Trip {
@@ -128,9 +126,7 @@ function writeRoutes(routes: Route[], trips: Trip[], stopTimes: StopTime[], stop
                     return {
                         id: stop?.id,
                         name: stop?.name,
-                        //stopSequence: stopTime.stopSequence,
                         arrivalTime: stopTime.arrivalTime,
-                        //departureTime: stopTime.departureTime
                     } as BusStopDetails;
                 })
             }
@@ -149,11 +145,7 @@ function writeRoutes(routes: Route[], trips: Trip[], stopTimes: StopTime[], stop
         const fileRoutes = routes.slice(start, end);
         console.warn(`Writing routes ${start} to ${end}`);
         Bun.write(`./routes-${i+1}.json`, JSON.stringify(fileRoutes, null, 2));
-    }
-
-
-    //return Bun.write("./routes.json", JSON.stringify(routes, null, 2)
-    
+    }  
 }
 
 
