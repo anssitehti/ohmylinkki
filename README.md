@@ -17,8 +17,18 @@ This is a technology demo project showcasing [Azure AI](https://azure.microsoft.
 
 ## 📁 Project Structure
 
-- `src/api/` - .NET 9 backend service
-- `src/ui/` - React + TypeScript frontend
+```
+├── src/
+│   ├── api/              # .NET backend API service
+│   ├── ui/               # React + TypeScript frontend
+│   ├── McpServer/        # Model Context Protocol server
+│   ├── McpClient/        # MCP client implementation
+│   └── Core/             # Shared .NET core libraries
+├── infra/                # Azure infrastructure (Bicep templates)
+├── nginx-proxy/          # Nginx reverse proxy configuration
+├── proto/                # Protocol buffer definitions (GTFS)
+└── reference-data/       # Static reference data (routes, stops)
+```
 
 ## 🛠️ Development Setup
 
