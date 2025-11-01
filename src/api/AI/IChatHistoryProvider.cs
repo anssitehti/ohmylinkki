@@ -1,59 +1,48 @@
+using System.Text.Json;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace Api.AI;
 
 public interface IChatHistoryProvider
 {
-    Task<ChatHistory> GetHistoryAsync(string userId);
+    AgentThread LoadConversation(string userId, AIAgent agent);
+    public void SaveConversation(string userId, AgentThread thread);
 
-    Task<ChatHistory> GetAgentHistoryAsync(string userId);
-
-    Task ClearHistoryAsync(string userId);
+    void ClearHistory(string userId);
 }
 
 public class MemoryChatHistoryProvider(
     IMemoryCache memoryCache,
-    IOptions<OpenAiOptions> options,
-    IChatHistoryReducer historyReducer) : IChatHistoryProvider
+    IOptions<OpenAiOptions> options) : IChatHistoryProvider
 {
-    public async Task<ChatHistory> GetHistoryAsync(string userId)
+    public AgentThread LoadConversation(string userId, AIAgent agent)
     {
-        return await GetChatHistoryAsync(userId, "chat", true);
-    }
-
-    public async Task<ChatHistory> GetAgentHistoryAsync(string userId)
-    {
-        return await GetChatHistoryAsync(userId, "agent", false);
-    }
-
-    private async Task<ChatHistory> GetChatHistoryAsync(string userId, string type, bool includeInstructions)
-    {
-        var cacheKey = $"{userId}_{type}";
-
-        var chatHistory = await memoryCache.GetOrCreateAsync(cacheKey, entry =>
+        var serializedJson = memoryCache.Get<string>(CreateCacheKey(userId));
+        if (string.IsNullOrWhiteSpace(serializedJson))
         {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes);
-            return Task.FromResult(includeInstructions
-                ? new ChatHistory(AgentInstructions.LinkkiAgentInstructions)
-                : new ChatHistory());
-        });
+            return agent.GetNewThread();
+        }
 
-        var reducedMessages = await historyReducer.ReduceAsync(chatHistory!);
-
-        if (reducedMessages == null) return chatHistory!;
-
-        var reducedHistory = new ChatHistory(reducedMessages);
-        memoryCache.Set(cacheKey, reducedHistory,
-            TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes));
-        return reducedHistory;
+        var reloaded = JsonSerializer.Deserialize<JsonElement>(serializedJson, JsonSerializerOptions.Web);
+        return agent.DeserializeThread(reloaded, JsonSerializerOptions.Web);
     }
 
-    public Task ClearHistoryAsync(string userId)
+    public void SaveConversation(string userId, AgentThread thread)
     {
-        memoryCache.Remove($"{userId}_chat");
-        memoryCache.Remove($"{userId}_agent");
-        return Task.CompletedTask;
+        var serializedJson = thread.Serialize(JsonSerializerOptions.Web).GetRawText();
+        memoryCache.Set(CreateCacheKey(userId), serializedJson,
+            TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes));
+    }
+
+    public void ClearHistory(string userId)
+    {
+        memoryCache.Remove(CreateCacheKey(userId));
+    }
+
+    private string CreateCacheKey(string userId)
+    {
+        return $"{userId}_agent";
     }
 }

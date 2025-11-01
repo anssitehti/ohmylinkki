@@ -1,17 +1,15 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using ModelContextProtocol.Client;
+﻿using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
 
 Console.WriteLine("Hello, I am MCP client. Here is a list of tools available from the server: \n");
 
-var clientTransport = new SseClientTransport(new SseClientTransportOptions
+var clientTransport = new HttpClientTransport(new HttpClientTransportOptions
 {
-    Endpoint = new Uri("http://localhost:5059/sse")
+    Endpoint = new Uri("http://localhost:5059")
 });
 
-var client = await McpClientFactory.CreateAsync(clientTransport);
+var client = await McpClient.CreateAsync(clientTransport);
 
 var tools = await client.ListToolsAsync();
 

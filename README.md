@@ -1,20 +1,36 @@
-# Oh My Linkki
+# 🚌 OhMyLinkki
 
-An AI-powered assistant for tracking Linkki bus lines in Jyväskylä, Finland. The application provides real-time bus locations and an AI chat interface for public transportation queries.
+An Azure AI-powered assistant for tracking Linkki bus lines in Jyväskylä, Finland. The application provides real-time bus locations and an AI chat interface for public transportation queries.
 
-## Features
+This is a technology demo project showcasing [Azure AI](https://azure.microsoft.com/en-us/solutions/ai), [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview), and [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## 🎬 Demo
+
+![Oh My Linkki AI Agent Demo](ohmylinkki-ai-agent-demo.gif)
+
+## ✨ Features
 
 - Real-time bus tracking using GTFS Realtime data
 - Interactive map showing bus locations
 - AI chat assistant for transportation queries
 - WebSocket-based live updates
 
-## Project Structure
+## 📁 Project Structure
 
-- `src/api/` - .NET 9 backend service
-- `src/ui/` - React + TypeScript frontend
+```
+├── src/
+│   ├── api/              # .NET backend API service
+│   ├── ui/               # React + TypeScript frontend
+│   ├── McpServer/        # Model Context Protocol server
+│   ├── McpClient/        # MCP client implementation
+│   └── Core/             # Shared .NET core libraries
+├── infra/                # Azure infrastructure (Bicep templates)
+├── nginx-proxy/          # Nginx reverse proxy configuration
+├── proto/                # Protocol buffer definitions (GTFS)
+└── reference-data/       # Static reference data (routes, stops)
+```
 
-## Development Setup
+## 🛠️ Development Setup
 
 ### Prerequisites
 
@@ -22,13 +38,19 @@ An AI-powered assistant for tracking Linkki bus lines in Jyväskylä, Finland. T
 - Dev Containers extension for VS Code
 - Docker Desktop
 
-### Getting Started
+### 🚀 Getting Started
 
 1. Clone the repository and open it in VS Code
 2. When prompted, click "Reopen in Container" or use Command Palette (F1) and select "Dev Containers: Reopen in Container"
 3. VS Code will build and start the development container with all required dependencies
 
-### Configuration
+### ⚙️ Configuration
+
+#### Get Waltti API Credentials
+
+To get the `WalttiUsername` and `WalttiPassword`, you need to register at <https://digitransit.fi/en/developers/api-registration/>. Please follow the instructions on that page.
+
+#### Create Configuration Files
 
 Create `src/api/appsettings.Development.json` with the following structure:
 
@@ -51,26 +73,34 @@ Create `src/api/appsettings.Development.json` with the following structure:
 }
 ```
 
-Create `src/ui/.env` with the following structure to overwrite API_URL.
+Create `src/ui/.env` with the following structure:
 
 ```properties
-
 # Development in devcontainer (default)
 API_URL="http://localhost:5074"
 
 # Development with IDE on host
 # API_URL="http://host.docker.internal:5074"
+
+# MapTiler API key for map rendering
+# Get your free API key at https://www.maptiler.com/
+VITE_MAPTILER_API_KEY=your_maptiler_api_key
 ```
 
-### Running the Application
+### ▶️ Running the Application
 
-1. Start the backend:
+1. Start the MCP server and API :
 
 ```sh
+cd src/McpServer
+dotnet run
+
 cd src/api
 dotnet run
-``sh
+```
+
 2. Start the frontend:
+
 ```sh
 cd src/ui
 bun run dev --host
@@ -81,11 +111,11 @@ The application will be available at:
 - Frontend: <http://localhost:5173>
 - Backend: <http://localhost:5074>
 
-## Deploy to the Azure
+## ☁️ Deploy to Azure
 
 Follow these steps to deploy the solution to Azure.
 
-### Build images
+### 🐳 Build Images
 
 Use following commands to create and push images to Azure Container Registry.
 
@@ -121,7 +151,7 @@ docker push $AZURE_CONTAINER_REGISTRY_URL/ohmylinkki/mcp-server:$OHMYLINKKI_MCP_
 
 ```
 
-### Deploy Azure Infra
+### 🚀 Deploy Azure Infra
 
 Follow these steps to deploy solutions to Azure:
 
@@ -140,6 +170,6 @@ Follow these steps to deploy solutions to Azure:
     az stack sub create --name ohmylinkki --subscription {subscription} --location {location} --deny-settings-mode none --action-on-unmanage detachAll --template-file main.bicep --parameters {env}.bicepparam
     ```
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License.

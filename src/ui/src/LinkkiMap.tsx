@@ -49,7 +49,7 @@ function LinkkiMap({ userId }: { userId: string }) {
   useEffect(() => {
     const map = new maplibregl.Map({
       container: 'map',
-      style: 'https://api.maptiler.com/maps/basic/style.json?key=Zmuer6TZwYpzssYfvTcK',
+      style: `https://api.maptiler.com/maps/basic/style.json?key=${import.meta.env.VITE_MAPTILER_API_KEY}`,
       center: [25.7473, 62.2426],
       zoom: 11
     });
