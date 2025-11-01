@@ -61,9 +61,11 @@ public class LinkkiAgentFactory
 
     private async Task<IList<McpClientTool>> GetLinkkiMcpToolsAsync()
     {
-        var linkkiMcpClient = await McpClientFactory.CreateAsync(new SseClientTransport(new SseClientTransportOptions
-            { Endpoint = new Uri(_linkkiOptions.LinkkiMcpServerUrl) }));
-
+        var clientTransport = new HttpClientTransport(new HttpClientTransportOptions
+        {
+            Endpoint = new Uri(_linkkiOptions.LinkkiMcpServerUrl)
+        });
+        var linkkiMcpClient = await McpClient.CreateAsync(clientTransport);
         var linkkiMcpTools = await linkkiMcpClient.ListToolsAsync();
         return linkkiMcpTools;
     }
