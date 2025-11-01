@@ -63,15 +63,18 @@ Create `src/api/appsettings.Development.json` with the following structure:
 }
 ```
 
-Create `src/ui/.env` with the following structure to overwrite API_URL.
+Create `src/ui/.env` with the following structure:
 
 ```properties
-
 # Development in devcontainer (default)
 API_URL="http://localhost:5074"
 
 # Development with IDE on host
 # API_URL="http://host.docker.internal:5074"
+
+# MapTiler API key for map rendering
+# Get your free API key at https://www.maptiler.com/
+VITE_MAPTILER_API_KEY=your_maptiler_api_key
 ```
 
 ### ▶️ Running the Application
