@@ -6,7 +6,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
-using OpenAI;
+using OpenAI.Chat;
 
 
 namespace Api;
@@ -36,21 +36,22 @@ public class LinkkiAgentFactory
                 new Uri(_openAiOptions.Endpoint),
                 _azureCredential)
             .GetChatClient(_openAiOptions.DeploymentName)
-            .CreateAIAgent(new ChatClientAgentOptions
+            .AsAIAgent(new ChatClientAgentOptions
             {
                 Name = "LinkkiAgent",
-                Instructions = AgentInstructions.LinkkiAgentInstructions,
+                Description = AgentInstructions.LinkkiAgentInstructions,
                 ChatOptions = new ChatOptions
                 {
                     Tools = [..linkkiMcpTools, ..GetMapTools()]
                 },
-                ChatMessageStoreFactory = ctx => new InMemoryChatMessageStore(
+                ChatHistoryProvider = new InMemoryChatHistoryProvider(new InMemoryChatHistoryProviderOptions()
+                {
 #pragma warning disable MEAI001
-                    new MessageCountingChatReducer(_openAiOptions.ChatHistoryTruncationReducerTargetCount),
+                    ChatReducer =
+                        new MessageCountingChatReducer(_openAiOptions.ChatHistoryTruncationReducerTargetCount),
 #pragma warning restore MEAI001
-                    ctx.SerializedState,
-                    ctx.JsonSerializerOptions,
-                    InMemoryChatMessageStore.ChatReducerTriggerEvent.AfterMessageAdded)
+                    ReducerTriggerEvent = InMemoryChatHistoryProviderOptions.ChatReducerTriggerEvent.AfterMessageAdded
+                }),
             })
             .AsBuilder()
             .UseOpenTelemetry(sourceName: "linkki-agent")
