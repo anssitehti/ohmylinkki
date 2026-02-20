@@ -121,11 +121,11 @@ app.MapPost("api/chat-agent",
         }
 
         var agent = await agentFactory.CreateAgentAsync();
-        var thread = chatHistoryProvider.LoadConversation(userMessage.UserId, agent);
+        var session = await chatHistoryProvider.LoadConversationAsync(userMessage.UserId, agent);
         try
         {
-            var response = await agent.RunAsync(new ChatMessage(ChatRole.User, userMessage.Message), thread);
-            chatHistoryProvider.SaveConversation(userMessage.UserId, thread);
+            var response = await agent.RunAsync(new ChatMessage(ChatRole.User, userMessage.Message), session);
+            await chatHistoryProvider.SaveConversationAsync(userMessage.UserId, agent, session);
             return Results.Ok(new
             {
                 message = response.Text,

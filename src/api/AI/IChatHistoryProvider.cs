@@ -7,8 +7,8 @@ namespace Api.AI;
 
 public interface IChatHistoryProvider
 {
-    AgentThread LoadConversation(string userId, AIAgent agent);
-    public void SaveConversation(string userId, AgentThread thread);
+    Task<AgentSession> LoadConversationAsync(string userId, AIAgent agent);
+    public Task SaveConversationAsync(string userId, AIAgent agent, AgentSession agentSession);
 
     void ClearHistory(string userId);
 }
@@ -17,22 +17,22 @@ public class MemoryChatHistoryProvider(
     IMemoryCache memoryCache,
     IOptions<OpenAiOptions> options) : IChatHistoryProvider
 {
-    public AgentThread LoadConversation(string userId, AIAgent agent)
+    public async Task<AgentSession> LoadConversationAsync(string userId, AIAgent agent)
     {
         var serializedJson = memoryCache.Get<string>(CreateCacheKey(userId));
         if (string.IsNullOrWhiteSpace(serializedJson))
         {
-            return agent.GetNewThread();
+            return await agent.CreateSessionAsync();
         }
 
         var reloaded = JsonSerializer.Deserialize<JsonElement>(serializedJson, JsonSerializerOptions.Web);
-        return agent.DeserializeThread(reloaded, JsonSerializerOptions.Web);
+        return await agent.DeserializeSessionAsync(reloaded, JsonSerializerOptions.Web);
     }
 
-    public void SaveConversation(string userId, AgentThread thread)
+    public async Task SaveConversationAsync(string userId, AIAgent agent, AgentSession agentSession)
     {
-        var serializedJson = thread.Serialize(JsonSerializerOptions.Web).GetRawText();
-        memoryCache.Set(CreateCacheKey(userId), serializedJson,
+        var serializedJson = await agent.SerializeSessionAsync(agentSession, JsonSerializerOptions.Web);
+        memoryCache.Set(CreateCacheKey(userId), serializedJson.GetRawText(),
             TimeSpan.FromMinutes(options.Value.ChatHistoryExpirationMinutes));
     }
 
